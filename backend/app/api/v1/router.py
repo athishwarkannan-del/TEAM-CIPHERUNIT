@@ -10,6 +10,7 @@ from app.api.v1.accounts import router as accounts_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.federated import router as federated_router
 from app.api.v1.geo import router as geo_router
 from app.api.v1.graph import router as graph_router
 from app.api.v1.health import router as health_router
@@ -29,3 +30,4 @@ api_v1_router.include_router(graph_router)
 api_v1_router.include_router(geo_router)
 api_v1_router.include_router(investigations_router)
 api_v1_router.include_router(reports_router)
+api_v1_router.include_router(federated_router)
