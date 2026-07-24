@@ -44,8 +44,10 @@ class Settings(BaseSettings):
     APP_PORT: int = 8000
 
     # -------------------------------------------------------------------------
-    # PostgreSQL
+    # PostgreSQL (Supabase / Managed / Local)
     # -------------------------------------------------------------------------
+    DATABASE_URL: str | None = None
+    DATABASE_URL_SYNC: str | None = None
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "muletrace_db"
@@ -77,7 +79,19 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     @property
     def postgres_dsn(self) -> str:
-        """Build async PostgreSQL connection string for SQLAlchemy."""
+        """Build async PostgreSQL connection string for SQLAlchemy.
+
+        Supports direct DATABASE_URL (e.g. from Supabase / Neon / RDS) or
+        individual parameters. Automatically ensures +asyncpg driver prefix.
+        """
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            return url
+
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
@@ -85,7 +99,24 @@ class Settings(BaseSettings):
 
     @property
     def postgres_dsn_sync(self) -> str:
-        """Build sync PostgreSQL connection string for Alembic migrations."""
+        """Build sync PostgreSQL connection string for Alembic migrations.
+
+        Supports direct DATABASE_URL_SYNC / DATABASE_URL or individual parameters.
+        Ensures standard postgresql:// driver prefix for Alembic.
+        """
+        if self.DATABASE_URL_SYNC:
+            url = self.DATABASE_URL_SYNC
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            return url
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith("postgresql+asyncpg://"):
+                url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+            elif url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            return url
+
         return (
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
