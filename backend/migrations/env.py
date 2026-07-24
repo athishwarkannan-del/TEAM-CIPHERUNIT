@@ -13,7 +13,7 @@ IMPORTANT:
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from app.config.settings import settings
 from app.database.base import Base
@@ -39,8 +39,8 @@ from app.models.transaction import Transaction  # noqa: F401
 # ---------------------------------------------------------------------------
 config = context.config
 
-# Set the SQLAlchemy URL from settings (never hardcoded in alembic.ini).
-config.set_main_option("sqlalchemy.url", settings.postgres_dsn_sync)
+# Set the SQLAlchemy URL from settings, escaping % for ConfigParser
+config.set_main_option("sqlalchemy.url", settings.postgres_dsn_sync.replace("%", "%%"))
 
 # Configure Python logging from alembic.ini
 if config.config_file_name is not None:
@@ -59,7 +59,7 @@ def run_migrations_offline() -> None:
     Usage:
         alembic upgrade head --sql
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.postgres_dsn_sync
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -82,9 +82,8 @@ def run_migrations_online() -> None:
     Usage:
         alembic upgrade head
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        settings.postgres_dsn_sync,
         poolclass=pool.NullPool,
     )
 

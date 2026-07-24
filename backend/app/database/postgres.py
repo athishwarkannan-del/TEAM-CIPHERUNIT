@@ -50,10 +50,14 @@ def init_engine() -> AsyncEngine:
     global _engine, async_session_factory
 
     logger.info(
-        "Initializing PostgreSQL engine — host=%s, db=%s",
-        settings.POSTGRES_HOST,
-        settings.POSTGRES_DB,
+        "Initializing PostgreSQL engine — DSN=%s",
+        settings.postgres_dsn.split("@")[-1] if "@" in settings.postgres_dsn else settings.postgres_dsn,
     )
+
+    # Configure SSL mode for cloud PostgreSQL providers (Supabase / Neon / RDS)
+    connect_args = {}
+    if "supabase.com" in settings.postgres_dsn or "pooler" in settings.postgres_dsn or settings.DATABASE_URL:
+        connect_args["ssl"] = "require"
 
     _engine = create_async_engine(
         settings.postgres_dsn,
@@ -64,6 +68,7 @@ def init_engine() -> AsyncEngine:
         pool_timeout=30,
         pool_recycle=1800,  # Recycle connections every 30 minutes
         pool_pre_ping=True,  # Verify connections before use
+        connect_args=connect_args,
     )
 
     async_session_factory = async_sessionmaker(

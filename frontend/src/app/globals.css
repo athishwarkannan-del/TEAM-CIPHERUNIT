@@ -1,0 +1,271 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   MuleTrace AI — Global Design System
+   ============================================================================ */
+
+:root {
+  --bg-primary: #0b0f19;
+  --bg-card: #111827;
+  --bg-raised: #1a2332;
+  --bg-overlay: #1f2937;
+  --border-subtle: #1f2937;
+  --border-default: #283548;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #6366f1;
+  --accent-glow: #818cf8;
+}
+
+/* ============================================================================
+   Base Styles
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================================================
+   Glassmorphism Cards
+   ============================================================================ */
+
+@layer components {
+  .glass-card {
+    @apply relative rounded-xl border border-white/[0.06] bg-navy-800/80 shadow-glass;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    @apply border-white/[0.12] shadow-lg;
+    transform: translateY(-1px);
+  }
+
+  .glass-card-sm {
+    @apply relative rounded-lg border border-white/[0.05] bg-navy-800/60 shadow-glass-sm;
+    backdrop-filter: blur(12px);
+  }
+
+  /* KPI Card glow variants */
+  .kpi-card {
+    @apply glass-card p-5 transition-all duration-300;
+  }
+  .kpi-card:hover {
+    @apply border-white/[0.1];
+    transform: translateY(-2px);
+  }
+
+  .kpi-card-critical {
+    @apply kpi-card;
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .kpi-card-critical:hover {
+    box-shadow: 0 0 50px rgba(239, 68, 68, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .kpi-card-amber {
+    @apply kpi-card;
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .kpi-card-blue {
+    @apply kpi-card;
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .kpi-card-emerald {
+    @apply kpi-card;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Badge base */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply rounded-lg bg-navy-700;
+    background-image: linear-gradient(
+      90deg,
+      transparent 25%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply mb-6;
+  }
+  .page-title {
+    @apply font-display text-2xl font-bold text-white tracking-tight;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-400;
+  }
+
+  /* Data table */
+  .data-table {
+    @apply w-full text-sm;
+  }
+  .data-table thead {
+    @apply border-b border-navy-600;
+  }
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-slate-300;
+  }
+  .data-table tbody tr {
+    @apply border-b border-navy-700/50 transition-colors duration-150;
+  }
+  .data-table tbody tr:hover {
+    @apply bg-navy-700/30;
+  }
+
+  /* Slide-over panel */
+  .slide-over-backdrop {
+    @apply fixed inset-0 z-40 bg-black/50;
+    backdrop-filter: blur(4px);
+  }
+  .slide-over-panel {
+    @apply fixed right-0 top-0 z-50 h-full w-[480px] border-l border-navy-600 bg-navy-900 shadow-2xl;
+    animation: slideInRight 0.3s ease-out;
+  }
+}
+
+/* ============================================================================
+   Scrollbar
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #283548;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* ============================================================================
+   React Flow Overrides
+   ============================================================================ */
+
+.react-flow__background {
+  background-color: #0b0f19 !important;
+}
+.react-flow__minimap {
+  background-color: #111827 !important;
+  border: 1px solid #1f2937 !important;
+  border-radius: 8px !important;
+}
+.react-flow__controls {
+  border: 1px solid #1f2937 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+  fill: #94a3b8 !important;
+}
+.react-flow__controls-button:hover {
+  background-color: #1a2332 !important;
+}
+
+/* ============================================================================
+   Leaflet Overrides
+   ============================================================================ */
+
+.leaflet-container {
+  background-color: #0b0f19 !important;
+  border-radius: 12px;
+}
+.leaflet-popup-content-wrapper {
+  background: #111827 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #1f2937 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+.leaflet-popup-tip {
+  background: #111827 !important;
+}
+.leaflet-control-zoom a {
+  background-color: #111827 !important;
+  color: #94a3b8 !important;
+  border-color: #1f2937 !important;
+}
+
+/* ============================================================================
+   Recharts Overrides
+   ============================================================================ */
+
+.recharts-cartesian-grid line {
+  stroke: #1f2937 !important;
+}
+.recharts-text {
+  fill: #94a3b8 !important;
+  font-size: 11px !important;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* ============================================================================
+   Animations & Transitions
+   ============================================================================ */
+
+.animate-stagger > * {
+  animation: slideUp 0.4s ease-out both;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 240ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 320ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 400ms; }
+
+/* Live pulse dot */
+.pulse-dot {
+  @apply relative inline-block h-2 w-2 rounded-full bg-emerald-400;
+}
+.pulse-dot::after {
+  content: "";
+  @apply absolute inset-0 rounded-full bg-emerald-400;
+  animation: pulseGlow 2s infinite;
+}
