@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
@@ -17,26 +18,15 @@ import {
   Copy,
   ChevronRight,
 } from "lucide-react";
-import cytoscape, { ElementDefinition } from "cytoscape";
-// @ts-expect-error cytoscape-fcose type definition fallback
-import fcose from "cytoscape-fcose";
+import type { ElementDefinition } from "cytoscape";
 
 import { fetchGraph } from "@/lib/api";
-import type { GraphResponse, GraphNode, GraphEdge } from "@/lib/types";
+import type { GraphResponse, GraphNode } from "@/lib/types";
 import { formatCurrency, cn, getRiskBg } from "@/lib/utils";
 import { useGraphStore, TimelineRange } from "@/lib/graph-store";
 
-// Register fcose layout extension
-if (typeof window !== "undefined") {
-  try {
-    cytoscape.use(fcose);
-  } catch {
-    // Already registered
-  }
-}
-
 // -----------------------------------------------------------------------------
-// Semantic Color & Radius Constants
+// Semantic Color & Sizing Matrix (Obsidian Free-Space Style)
 // -----------------------------------------------------------------------------
 const SEMANTIC_COLORS: Record<string, string> = {
   customer: "#3b82f6", // Blue
@@ -63,50 +53,11 @@ function getNodeSemanticColor(node: GraphNode): string {
 
 function getNodeRadius(node: GraphNode): number {
   const score = node.risk_score || 20;
-  if (score >= 90 || node.is_mule) return 52;
-  if (score >= 75) return 42;
-  if (score >= 45) return 32;
-  if (score >= 25) return 24;
-  return 18;
-}
-
-// -----------------------------------------------------------------------------
-// Distance Rules Matrix
-// -----------------------------------------------------------------------------
-const PAIR_BASE_DISTANCES: Record<string, number> = {
-  "customer-account": 140,
-  "account-device": 120,
-  "account-wallet": 150,
-  "account-upi": 140,
-  "account-merchant": 190,
-  "account-atm": 180,
-  "account-branch": 180,
-  "device-ip": 170,
-  "device-device": 250,
-  "wallet-merchant": 210,
-  "merchant-merchant": 260,
-  "ip-location": 140,
-  "atm-location": 130,
-  "account-account": 220,
-  "fraud-fraud": 450,
-};
-
-function getIdealEdgeLength(edge: GraphEdge, nodeMap: Map<string, GraphNode>): number {
-  const src = nodeMap.get(edge.source);
-  const tgt = nodeMap.get(edge.target);
-  if (!src || !tgt) return 180;
-
-  const srcType = (src.is_mule ? "fraud" : src.type).toLowerCase();
-  const tgtType = (tgt.is_mule ? "fraud" : tgt.type).toLowerCase();
-
-  const key1 = `${srcType}-${tgtType}`;
-  const key2 = `${tgtType}-${srcType}`;
-
-  const baseDist = PAIR_BASE_DISTANCES[key1] || PAIR_BASE_DISTANCES[key2] || 180;
-  const degreePad = 12;
-  const commPad = src.community_id === tgt.community_id ? 10 : 60;
-
-  return baseDist + degreePad + commPad;
+  if (score >= 90 || node.is_mule) return 36;
+  if (score >= 75) return 28;
+  if (score >= 45) return 22;
+  if (score >= 25) return 16;
+  return 12;
 }
 
 // -----------------------------------------------------------------------------
@@ -114,7 +65,7 @@ function getIdealEdgeLength(edge: GraphEdge, nodeMap: Map<string, GraphNode>): n
 // -----------------------------------------------------------------------------
 export default function GraphPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const cyRef = useRef<cytoscape.Core | null>(null);
+  const cyRef = useRef<Record<string, unknown> | null>(null);
 
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,15 +112,7 @@ export default function GraphPage() {
     });
   }, []);
 
-  const nodeMap = useMemo(() => {
-    const map = new Map<string, GraphNode>();
-    if (graphData) {
-      graphData.nodes.forEach((n) => map.set(n.id, n));
-    }
-    return map;
-  }, [graphData]);
-
-  // Compute Hop Expansion subset & Filtered Elements
+  // Compute Spaced Cytoscape Elements (No Community Compounds - Pure Free Space!)
   const filteredElements = useMemo(() => {
     if (!graphData) return [];
 
@@ -224,25 +167,9 @@ export default function GraphPage() {
     const validIds = new Set(activeNodes.map((n) => n.id));
     activeEdges = activeEdges.filter((e) => validIds.has(e.source) && validIds.has(e.target));
 
-    // Grouping Communities into Compound Nodes
-    const communityNodes: ElementDefinition[] = [];
-    const communitiesPresent = new Set(activeNodes.map((n) => n.community_id || "COMMUNITY-DEFAULT"));
-
-    communitiesPresent.forEach((cid) => {
-      communityNodes.push({
-        data: {
-          id: cid,
-          label: cid,
-          isCommunity: true,
-        },
-        classes: "community-compound",
-      });
-    });
-
     const cytoscapeNodes: ElementDefinition[] = activeNodes.map((n) => ({
       data: {
         id: n.id,
-        parent: n.community_id || "COMMUNITY-DEFAULT",
         label: n.label,
         risk_score: n.risk_score,
         type: n.type,
@@ -265,179 +192,180 @@ export default function GraphPage() {
       classes: (e.amount || 0) >= 50000 ? "high-value-edge" : "standard-edge",
     }));
 
-    return [...communityNodes, ...cytoscapeNodes, ...cytoscapeEdges];
+    return [...cytoscapeNodes, ...cytoscapeEdges];
   }, [graphData, hiddenNodes, filterRisk, filterType, filterBank, filterMinAmount, selectedNode, hopLevel]);
 
-  // Initialize Cytoscape Instance
+  // Client-Side Only Cytoscape Dynamic Initialization
   useEffect(() => {
-    if (!containerRef.current || loading) return;
+    if (typeof window === "undefined" || !containerRef.current || loading) return;
 
-    const cy = cytoscape({
-      container: containerRef.current,
-      elements: filteredElements,
-      boxSelectionEnabled: false,
-      autounselectify: false,
-      style: [
-        {
-          selector: "node[!isCommunity]",
-          style: {
-            "background-color": "data(color)",
-            width: "data(size)",
-            height: "data(size)",
-            label: "data(label)",
-            color: "#f8fafc",
-            "font-size": "11px",
-            "font-weight": 700,
-            "text-valign": "bottom",
-            "text-margin-y": 6,
-            "text-background-color": "#090b12",
-            "text-background-opacity": 0.85,
-            "text-background-padding": "3px",
-            "border-width": 3,
-            "border-color": "#090b12",
-          },
-        },
-        {
-          selector: "node.community-compound",
-          style: {
-            label: "data(label)",
-            color: "#94a3b8",
-            "font-size": "10px",
-            "font-weight": 800,
-            "text-valign": "top",
-            "background-color": "#111827",
-            "background-opacity": 0.4,
-            "border-width": 1.5,
-            "border-color": "#374151",
-            "border-style": "dashed",
-            padding: "30px",
-          },
-        },
-        {
-          selector: "node:selected",
-          style: {
-            "border-width": 5,
-            "border-color": "#ffffff",
-          },
-        },
-        {
-          selector: "edge",
-          style: {
-            width: 2.2,
-            "line-color": "#334155",
-            "target-arrow-color": "#334155",
-            "target-arrow-shape": "triangle",
-            "curve-style": "bezier",
-            label: "data(label)",
-            color: "#94a3b8",
-            "font-size": "9px",
-            "font-weight": 600,
-            "text-background-color": "#090b12",
-            "text-background-opacity": 0.9,
-            "text-background-padding": "2px",
-          },
-        },
-        {
-          selector: "edge.high-value-edge",
-          style: {
-            width: 3.5,
-            "line-color": "#ef4444",
-            "target-arrow-color": "#ef4444",
-            color: "#fca5a5",
-          },
-        },
-        {
-          selector: ".dimmed",
-          style: {
-            opacity: 0.15,
-          },
-        },
-        {
-          selector: ".highlighted",
-          style: {
-            opacity: 1.0,
-            "border-width": 4,
-            "border-color": "#38bdf8",
-          },
-        },
-      ],
-    });
+    let cyInstance: { destroy: () => void } | null = null;
 
-    cyRef.current = cy;
+    Promise.all([import("cytoscape"), import("cytoscape-fcose")]).then(
+      ([cytoscapeModule, fcoseModule]) => {
+        const cytoscape = cytoscapeModule.default;
+        const fcose = fcoseModule.default;
 
-    // Run fCoSE Force Layout
-    const layout = cy.layout({
-      name: "fcose",
-      animate: true,
-      animationDuration: 800,
-      fit: true,
-      padding: 60,
-      randomize: false,
-      nodeSeparation: 120,
-      idealEdgeLength: (edge: cytoscape.EdgeSingular) => {
-        const srcId = edge.data("source");
-        const tgtId = edge.data("target");
-        const rel = edge.data("relationship") || "TRANSFERRED_FUNDS";
-        return getIdealEdgeLength({ source: srcId, target: tgtId, relationship: rel }, nodeMap);
-      },
-    } as cytoscape.LayoutOptions);
+        try {
+          cytoscape.use(fcose);
+        } catch {
+          // registered
+        }
 
-    layout.run();
+        const cy = cytoscape({
+          container: containerRef.current,
+          elements: filteredElements,
+          boxSelectionEnabled: false,
+          autounselectify: false,
+          style: [
+            {
+              selector: "node",
+              style: {
+                "background-color": "data(color)",
+                width: "data(size)",
+                height: "data(size)",
+                label: "data(label)",
+                color: "#f8fafc",
+                "font-size": "10px",
+                "font-weight": 600,
+                "text-valign": "bottom",
+                "text-margin-y": 6,
+                "text-background-color": "#090b12",
+                "text-background-opacity": 0.9,
+                "text-background-padding": "3px",
+                "text-background-shape": "roundrectangle",
+                "border-width": 2,
+                "border-color": "#090b12",
+              },
+            },
+            {
+              selector: "node:selected",
+              style: {
+                "border-width": 4,
+                "border-color": "#ffffff",
+              },
+            },
+            {
+              selector: "edge",
+              style: {
+                width: 1.8,
+                "line-color": "#334155",
+                "target-arrow-color": "#334155",
+                "target-arrow-shape": "triangle",
+                "curve-style": "bezier",
+                label: "data(label)",
+                color: "#94a3b8",
+                "font-size": "8.5px",
+                "font-weight": 500,
+                "text-background-color": "#090b12",
+                "text-background-opacity": 0.9,
+                "text-background-padding": "2px",
+              },
+            },
+            {
+              selector: "edge.high-value-edge",
+              style: {
+                width: 2.8,
+                "line-color": "#ef4444",
+                "target-arrow-color": "#ef4444",
+                color: "#fca5a5",
+              },
+            },
+            {
+              selector: ".dimmed",
+              style: {
+                opacity: 0.12,
+              },
+            },
+            {
+              selector: ".highlighted",
+              style: {
+                opacity: 1.0,
+                "border-width": 3.5,
+                "border-color": "#38bdf8",
+              },
+            },
+          ],
+        });
 
-    // Zoom-dependent label visibility logic (< 0.4 zoom hides labels)
-    cy.on("zoom", () => {
-      const z = cy.zoom();
-      setZoomLevel(z);
-      if (z < 0.4) {
-        cy.nodes().style("text-opacity", 0);
-      } else {
-        cy.nodes().style("text-opacity", 1);
+        cyRef.current = cy as unknown as Record<string, unknown>;
+        cyInstance = cy;
+
+        // Run Obsidian Free Space Layout (High Repulsion, Long Edges)
+        const layout = cy.layout({
+          name: "fcose",
+          animate: true,
+          animationDuration: 900,
+          fit: true,
+          padding: 80,
+          randomize: true,
+          nodeSeparation: 300,
+          nodeRepulsion: () => 10000,
+          idealEdgeLength: () => 320,
+          edgeElasticity: () => 0.12,
+          gravity: 0.1,
+        } as unknown as cytoscape.LayoutOptions);
+
+        layout.run();
+
+        // Zoom-dependent label visibility logic (< 0.35 zoom hides labels)
+        cy.on("zoom", () => {
+          const z = cy.zoom();
+          setZoomLevel(z);
+          if (z < 0.35) {
+            cy.nodes().style("text-opacity", 0);
+          } else {
+            cy.nodes().style("text-opacity", 1);
+          }
+        });
+
+        // Node Selection Event
+        cy.on("tap", "node", (evt) => {
+          const rawData = evt.target.data("raw") as GraphNode;
+          setSelectedNode(rawData);
+          setContextMenu(null);
+
+          const neighborhood = evt.target.neighborhood().add(evt.target);
+          cy.elements().removeClass("highlighted").addClass("dimmed");
+          neighborhood.removeClass("dimmed").addClass("highlighted");
+        });
+
+        // Hover Events for Rich Hover Card
+        cy.on("mouseover", "node", (evt) => {
+          const rawData = evt.target.data("raw") as GraphNode;
+          const pos = evt.renderedPosition;
+          setHoveredNode(rawData, { x: pos.x, y: pos.y });
+        });
+
+        cy.on("mouseout", "node", () => {
+          setHoveredNode(null);
+        });
+
+        // Context Menu Event
+        cy.on("cxttap", "node", (evt) => {
+          const rawData = evt.target.data("raw") as GraphNode;
+          const pos = evt.renderedPosition;
+          setSelectedNode(rawData);
+          setContextMenu({ x: pos.x + 80, y: pos.y + 40, node: rawData });
+        });
+
+        // Tap Background
+        cy.on("tap", (evt) => {
+          if (evt.target === cy) {
+            setSelectedNode(null);
+            setContextMenu(null);
+            cy.elements().removeClass("dimmed").removeClass("highlighted");
+          }
+        });
       }
-    });
-
-    // Node Selection Event
-    cy.on("tap", "node[!isCommunity]", (evt) => {
-      const rawData = evt.target.data("raw") as GraphNode;
-      setSelectedNode(rawData);
-      setContextMenu(null);
-
-      const neighborhood = evt.target.neighborhood().add(evt.target);
-      cy.elements().removeClass("highlighted").addClass("dimmed");
-      neighborhood.removeClass("dimmed").addClass("highlighted");
-    });
-
-    // Hover Events for Rich Hover Card
-    cy.on("mouseover", "node[!isCommunity]", (evt) => {
-      const rawData = evt.target.data("raw") as GraphNode;
-      const pos = evt.renderedPosition;
-      setHoveredNode(rawData, { x: pos.x, y: pos.y });
-    });
-
-    cy.on("mouseout", "node[!isCommunity]", () => {
-      setHoveredNode(null);
-    });
-
-    // Context Menu Event
-    cy.on("cxttap", "node[!isCommunity]", (evt) => {
-      const rawData = evt.target.data("raw") as GraphNode;
-      const pos = evt.renderedPosition;
-      setSelectedNode(rawData);
-      setContextMenu({ x: pos.x + 80, y: pos.y + 40, node: rawData });
-    });
-
-    // Tap Background
-    cy.on("tap", (evt) => {
-      if (evt.target === cy) {
-        setSelectedNode(null);
-        setContextMenu(null);
-        cy.elements().removeClass("dimmed").removeClass("highlighted");
-      }
-    });
+    );
 
     return () => {
-      cy.destroy();
+      if (cyInstance) {
+        cyInstance.destroy();
+      }
     };
-  }, [filteredElements, loading, nodeMap, setHoveredNode, setSelectedNode]);
+  }, [filteredElements, loading, setHoveredNode, setSelectedNode]);
 
   // Keyboard Shortcuts Listener (Space = Fit, F = Focus, Esc = Clear)
   useEffect(() => {
@@ -445,19 +373,19 @@ export default function GraphPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
-        cyRef.current?.fit(undefined, 60);
+        (cyRef.current as any)?.fit(undefined, 80);
       } else if (e.key === "f" || e.key === "F") {
         if (selectedNode && cyRef.current) {
-          const ele = cyRef.current.getElementById(selectedNode.id);
+          const ele = (cyRef.current as any).getElementById(selectedNode.id);
           if (ele) {
-            cyRef.current.center(ele);
-            cyRef.current.zoom(2.5);
+            (cyRef.current as any).center(ele);
+            (cyRef.current as any).zoom(2.2);
           }
         }
       } else if (e.key === "Escape") {
         setSelectedNode(null);
         setContextMenu(null);
-        cyRef.current?.elements().removeClass("dimmed").removeClass("highlighted");
+        (cyRef.current as any)?.elements().removeClass("dimmed").removeClass("highlighted");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -473,11 +401,11 @@ export default function GraphPage() {
           (n.account_number && n.account_number.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       if (match) {
-        const ele = cyRef.current.getElementById(match.id);
+        const ele = (cyRef.current as any).getElementById(match.id);
         if (ele) {
           setSelectedNode(match);
-          cyRef.current.center(ele);
-          cyRef.current.zoom(2.8);
+          (cyRef.current as any).center(ele);
+          (cyRef.current as any).zoom(2.5);
           ele.emit("tap");
         }
       }
@@ -505,9 +433,9 @@ export default function GraphPage() {
 
   const handleDownloadPng = () => {
     if (cyRef.current) {
-      const png64 = cyRef.current.png({ full: true, bg: "#090b12" });
+      const png64 = (cyRef.current as any).png({ full: true, bg: "#090b12" });
       const link = document.createElement("a");
-      link.download = `MuleTrace_Cytoscape_Graph_${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `MuleTrace_Obsidian_Graph_${new Date().toISOString().slice(0, 10)}.png`;
       link.href = png64;
       link.click();
     }
@@ -603,7 +531,7 @@ export default function GraphPage() {
 
         {/* Control Buttons */}
         <button
-          onClick={() => cyRef.current?.fit(undefined, 60)}
+          onClick={() => (cyRef.current as any)?.fit(undefined, 80)}
           title="Center Graph (Space)"
           className="flex h-7 w-7 items-center justify-center rounded-lg border border-navy-600 bg-navy-950 text-slate-400 hover:text-white"
         >
@@ -636,7 +564,7 @@ export default function GraphPage() {
       {/* Zoom Awareness Indicator */}
       {/* ------------------------------------------------------------------- */}
       <div className="absolute top-6 right-6 z-20 rounded-lg border border-white/10 bg-navy-900/80 px-3 py-1.5 text-[10px] font-mono text-slate-400 backdrop-blur-md">
-        Zoom: {(zoomLevel * 100).toFixed(0)}% {zoomLevel < 0.4 && "· Labels Auto-Hidden"}
+        Zoom: {(zoomLevel * 100).toFixed(0)}% {zoomLevel < 0.35 && "· Labels Auto-Hidden"}
       </div>
 
       {/* ------------------------------------------------------------------- */}
@@ -688,7 +616,7 @@ export default function GraphPage() {
       {/* ------------------------------------------------------------------- */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2 rounded-xl border border-white/10 bg-navy-900/90 p-3 shadow-2xl backdrop-blur-xl w-56 text-xs">
         <div className="flex items-center justify-between font-bold text-slate-300">
-          <span>Semantic Legend</span>
+          <span>Obsidian Free Space</span>
           <span className="text-[10px] font-mono text-slate-500">Cytoscape</span>
         </div>
         <div className="grid grid-cols-2 gap-1.5 text-[10px]">
@@ -790,10 +718,10 @@ export default function GraphPage() {
 
                 <button
                   onClick={() => {
-                    const ele = cyRef.current?.getElementById(selectedNode.id);
+                    const ele = (cyRef.current as any)?.getElementById(selectedNode.id);
                     if (ele) {
-                      cyRef.current?.center(ele);
-                      cyRef.current?.zoom(2.8);
+                      (cyRef.current as any)?.center(ele);
+                      (cyRef.current as any)?.zoom(2.5);
                     }
                   }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-navy-600 bg-navy-950 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-navy-800"
