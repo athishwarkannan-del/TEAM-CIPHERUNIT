@@ -14,7 +14,7 @@ const pageTitles: Record<string, string> = {
   "/reports": "Regulatory Compliance Reports",
 };
 
-export default function Header() {
+function Header() {
   const pathname = usePathname();
   const title = pageTitles[pathname] || "MuleTrace AI";
 
@@ -64,3 +64,5 @@ export default function Header() {
     </header>
   );
 }
+
+export default React.memo(Header);

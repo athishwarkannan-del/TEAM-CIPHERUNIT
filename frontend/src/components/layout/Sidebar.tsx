@@ -28,7 +28,7 @@ const navItems = [
   { href: "/reports", label: "Reports", icon: FileText },
 ];
 
-export default function Sidebar() {
+function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -68,6 +68,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
@@ -120,3 +121,5 @@ export default function Sidebar() {
     </aside>
   );
 }
+
+export default React.memo(Sidebar);
