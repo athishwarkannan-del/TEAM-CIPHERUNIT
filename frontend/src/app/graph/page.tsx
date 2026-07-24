@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import dynamic from "next/dynamic";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Maximize2,
@@ -14,114 +14,144 @@ import {
   Lock,
   ZoomIn,
   Zap,
+  Copy,
+  ChevronRight,
 } from "lucide-react";
+import cytoscape, { ElementDefinition } from "cytoscape";
+// @ts-expect-error cytoscape-fcose type definition fallback
+import fcose from "cytoscape-fcose";
+
 import { fetchGraph } from "@/lib/api";
-import type { GraphResponse, GraphNode } from "@/lib/types";
+import type { GraphResponse, GraphNode, GraphEdge } from "@/lib/types";
 import { formatCurrency, cn, getRiskBg } from "@/lib/utils";
+import { useGraphStore, TimelineRange } from "@/lib/graph-store";
 
-// Dynamic import for react-force-graph-2d (SSR incompatible)
-const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
-
-export interface PositionedGraphNode extends GraphNode {
-  x?: number;
-  y?: number;
-  vx?: number;
-  vy?: number;
-  fx?: number;
-  fy?: number;
-}
-
-export interface ForceLink {
-  source: string | PositionedGraphNode;
-  target: string | PositionedGraphNode;
-  relationship?: string;
-  amount?: number;
-  channel?: string;
-  timestamp?: string;
+// Register fcose layout extension
+if (typeof window !== "undefined") {
+  try {
+    cytoscape.use(fcose);
+  } catch {
+    // Already registered
+  }
 }
 
 // -----------------------------------------------------------------------------
-// Node & Edge Color Matrix according to Design Requirements
+// Semantic Color & Radius Constants
 // -----------------------------------------------------------------------------
-function getNodeColor(node: GraphNode): { color: string; glow: string; labelColor: string } {
-  switch (node.type) {
-    case "victim":
-      return { color: "#3b82f6", glow: "rgba(59,130,246,0.5)", labelColor: "#93c5fd" }; // Blue
-    case "device":
-      return { color: "#a855f7", glow: "rgba(168,85,247,0.5)", labelColor: "#d8b4fe" }; // Purple
-    case "phone":
-      return { color: "#22c55e", glow: "rgba(34,197,94,0.5)", labelColor: "#86efac" }; // Green
-    case "ip":
-      return { color: "#eab308", glow: "rgba(234,179,8,0.5)", labelColor: "#fef08a" }; // Yellow
-    case "atm":
-      return { color: "#f8fafc", glow: "rgba(248,250,252,0.5)", labelColor: "#ffffff" }; // White
-    case "crypto":
-      return { color: "#ec4899", glow: "rgba(236,72,153,0.6)", labelColor: "#fbcfe8" }; // Pink
-    case "merchant":
-      return { color: "#94a3b8", glow: "rgba(148,163,184,0.4)", labelColor: "#cbd5e1" }; // Gray
-  }
+const SEMANTIC_COLORS: Record<string, string> = {
+  customer: "#3b82f6", // Blue
+  account: "#2563eb",  // Royal Blue
+  device: "#a855f7",   // Purple
+  wallet: "#f97316",   // Orange
+  crypto: "#f97316",   // Orange
+  merchant: "#10b981", // Green
+  atm: "#06b6d4",      // Cyan
+  branch: "#6366f1",   // Indigo
+  location: "#14b8a6", // Teal
+  ip: "#eab308",       // Yellow
+  phone: "#22c55e",    // Green
+  victim: "#3b82f6",   // Blue
+  fraud: "#ef4444",    // Red
+  unknown: "#64748b",  // Gray
+};
 
-  const score = node.risk_score;
-  if (score >= 90 || node.is_mule) {
-    return { color: "#ef4444", glow: "rgba(239,68,68,0.8)", labelColor: "#fca5a5" }; // Critical Red
-  }
-  if (score >= 75) {
-    return { color: "#f97316", glow: "rgba(249,115,22,0.7)", labelColor: "#fdba74" }; // High Risk Orange
-  }
-  if (score >= 45) {
-    return { color: "#f59e0b", glow: "rgba(245,158,11,0.6)", labelColor: "#fde68a" }; // Medium Risk Amber
-  }
-  return { color: "#06b6d4", glow: "rgba(6,182,212,0.5)", labelColor: "#a5f3fc" }; // Low Risk Cyan
+function getNodeSemanticColor(node: GraphNode): string {
+  if (node.is_mule || node.risk_score >= 90) return SEMANTIC_COLORS.fraud;
+  if (node.type === "account" && node.risk_score >= 75) return SEMANTIC_COLORS.fraud;
+  return SEMANTIC_COLORS[node.type] || SEMANTIC_COLORS.account;
 }
 
 function getNodeRadius(node: GraphNode): number {
-  switch (node.type) {
-    case "crypto": return 16;
-    case "victim": return 14;
-    case "device": return 12;
-    case "atm": return 12;
-    case "phone": return 11;
-    case "ip": return 11;
-    case "merchant": return 11;
-    default:
-      if (node.risk_score >= 90 || node.is_mule) return 18;
-      if (node.risk_score >= 75) return 15;
-      if (node.risk_score >= 45) return 13;
-      return 11;
-  }
+  const score = node.risk_score || 20;
+  if (score >= 90 || node.is_mule) return 52;
+  if (score >= 75) return 42;
+  if (score >= 45) return 32;
+  if (score >= 25) return 24;
+  return 18;
 }
 
 // -----------------------------------------------------------------------------
-// Force Graph Main Component
+// Distance Rules Matrix
+// -----------------------------------------------------------------------------
+const PAIR_BASE_DISTANCES: Record<string, number> = {
+  "customer-account": 140,
+  "account-device": 120,
+  "account-wallet": 150,
+  "account-upi": 140,
+  "account-merchant": 190,
+  "account-atm": 180,
+  "account-branch": 180,
+  "device-ip": 170,
+  "device-device": 250,
+  "wallet-merchant": 210,
+  "merchant-merchant": 260,
+  "ip-location": 140,
+  "atm-location": 130,
+  "account-account": 220,
+  "fraud-fraud": 450,
+};
+
+function getIdealEdgeLength(edge: GraphEdge, nodeMap: Map<string, GraphNode>): number {
+  const src = nodeMap.get(edge.source);
+  const tgt = nodeMap.get(edge.target);
+  if (!src || !tgt) return 180;
+
+  const srcType = (src.is_mule ? "fraud" : src.type).toLowerCase();
+  const tgtType = (tgt.is_mule ? "fraud" : tgt.type).toLowerCase();
+
+  const key1 = `${srcType}-${tgtType}`;
+  const key2 = `${tgtType}-${srcType}`;
+
+  const baseDist = PAIR_BASE_DISTANCES[key1] || PAIR_BASE_DISTANCES[key2] || 180;
+  const degreePad = 12;
+  const commPad = src.community_id === tgt.community_id ? 10 : 60;
+
+  return baseDist + degreePad + commPad;
+}
+
+// -----------------------------------------------------------------------------
+// Graph Intelligence Main Page Component
 // -----------------------------------------------------------------------------
 export default function GraphPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fgRef = useRef<any>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<cytoscape.Core | null>(null);
 
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Selection & Hover State
-  const [selectedNode, setSelectedNode] = useState<PositionedGraphNode | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<PositionedGraphNode | null>(null);
-  const [frozenNodes, setFrozenNodes] = useState<Set<string>>(new Set());
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Context Menu State
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: PositionedGraphNode } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: GraphNode } | null>(null);
 
-  // Filter State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterRisk, setFilterRisk] = useState<string>("ALL");
-  const [filterType, setFilterType] = useState<string>("ALL");
-  const [filterMinAmount, setFilterMinAmount] = useState<number>(0);
-
-  // UI Controls
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
-  const [aiSummaryText, setAiSummaryText] = useState("");
+  // AI Summary Modal State
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+
+  // Zustand Store
+  const {
+    selectedNode,
+    hoveredNode,
+    hoverPos,
+    hopLevel,
+    timelineRange,
+    filterRisk,
+    filterType,
+    filterMinAmount,
+    filterBank,
+    searchQuery,
+    pinnedNodes,
+    hiddenNodes,
+    setSelectedNode,
+    setHoveredNode,
+    setHopLevel,
+    setTimelineRange,
+    setFilterRisk,
+    setFilterType,
+    setSearchQuery,
+    togglePinNode,
+  } = useGraphStore();
 
   // Load Graph Data
   useEffect(() => {
@@ -131,305 +161,354 @@ export default function GraphPage() {
     });
   }, []);
 
-  // Connected Neighbors Lookup Map
-  const nodeNeighbors = useMemo(() => {
-    const neighbors = new Map<string, Set<string>>();
-
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, GraphNode>();
     if (graphData) {
-      graphData.edges.forEach((edge) => {
-        const src = typeof edge.source === "object" ? (edge.source as PositionedGraphNode).id : edge.source;
-        const tgt = typeof edge.target === "object" ? (edge.target as PositionedGraphNode).id : edge.target;
-
-        if (!neighbors.has(src)) neighbors.set(src, new Set());
-        if (!neighbors.has(tgt)) neighbors.set(tgt, new Set());
-
-        neighbors.get(src)!.add(tgt);
-        neighbors.get(tgt)!.add(src);
-      });
+      graphData.nodes.forEach((n) => map.set(n.id, n));
     }
-
-    return neighbors;
+    return map;
   }, [graphData]);
 
-  // Filtered Graph Computation
-  const filteredData = useMemo(() => {
-    if (!graphData) return { nodes: [], links: [] };
+  // Compute Hop Expansion subset & Filtered Elements
+  const filteredElements = useMemo(() => {
+    if (!graphData) return [];
 
-    let nodes = [...graphData.nodes];
-    let edges = [...graphData.edges];
+    let activeNodes = graphData.nodes.filter((n) => !hiddenNodes.has(n.id));
+    let activeEdges = graphData.edges.filter(
+      (e) => !hiddenNodes.has(e.source) && !hiddenNodes.has(e.target)
+    );
 
     // Filter Risk
-    if (filterRisk === "CRITICAL") nodes = nodes.filter((n) => n.risk_score >= 90 || n.is_mule);
-    else if (filterRisk === "HIGH") nodes = nodes.filter((n) => n.risk_score >= 75);
-    else if (filterRisk === "MEDIUM") nodes = nodes.filter((n) => n.risk_score >= 45 && n.risk_score < 75);
-    else if (filterRisk === "MULE_ONLY") nodes = nodes.filter((n) => n.is_mule);
+    if (filterRisk === "CRITICAL") activeNodes = activeNodes.filter((n) => n.risk_score >= 90 || n.is_mule);
+    else if (filterRisk === "HIGH") activeNodes = activeNodes.filter((n) => n.risk_score >= 75);
+    else if (filterRisk === "MEDIUM") activeNodes = activeNodes.filter((n) => n.risk_score >= 45 && n.risk_score < 75);
+    else if (filterRisk === "LOW") activeNodes = activeNodes.filter((n) => n.risk_score < 45);
+    else if (filterRisk === "MULES_ONLY") activeNodes = activeNodes.filter((n) => n.is_mule);
 
     // Filter Entity Type
-    if (filterType !== "ALL") nodes = nodes.filter((n) => n.type === filterType);
+    if (filterType !== "ALL") activeNodes = activeNodes.filter((n) => n.type === filterType);
 
-    // Filter Minimum Amount
+    // Filter Bank
+    if (filterBank !== "ALL") activeNodes = activeNodes.filter((n) => n.bank === filterBank);
+
+    // Filter Min Amount
     if (filterMinAmount > 0) {
-      edges = edges.filter((e) => (e.amount || 0) >= filterMinAmount);
+      activeEdges = activeEdges.filter((e) => (e.amount || 0) >= filterMinAmount);
     }
 
-    const validNodeIds = new Set(nodes.map((n) => n.id));
-    edges = edges.filter((e) => {
-      const src = typeof e.source === "object" ? (e.source as PositionedGraphNode).id : e.source;
-      const tgt = typeof e.target === "object" ? (e.target as PositionedGraphNode).id : e.target;
-      return validNodeIds.has(src) && validNodeIds.has(tgt);
+    const activeNodeIds = new Set(activeNodes.map((n) => n.id));
+
+    // Hop Level Expansion logic if a node is selected
+    if (selectedNode && hopLevel < 99) {
+      const allowedHopNodes = new Set<string>([selectedNode.id]);
+      let currentFrontier = new Set<string>([selectedNode.id]);
+
+      for (let h = 0; h < hopLevel; h++) {
+        const nextFrontier = new Set<string>();
+        activeEdges.forEach((e) => {
+          if (currentFrontier.has(e.source) && activeNodeIds.has(e.target)) {
+            allowedHopNodes.add(e.target);
+            nextFrontier.add(e.target);
+          }
+          if (currentFrontier.has(e.target) && activeNodeIds.has(e.source)) {
+            allowedHopNodes.add(e.source);
+            nextFrontier.add(e.source);
+          }
+        });
+        currentFrontier = nextFrontier;
+      }
+
+      activeNodes = activeNodes.filter((n) => allowedHopNodes.has(n.id));
+    }
+
+    const validIds = new Set(activeNodes.map((n) => n.id));
+    activeEdges = activeEdges.filter((e) => validIds.has(e.source) && validIds.has(e.target));
+
+    // Grouping Communities into Compound Nodes
+    const communityNodes: ElementDefinition[] = [];
+    const communitiesPresent = new Set(activeNodes.map((n) => n.community_id || "COMMUNITY-DEFAULT"));
+
+    communitiesPresent.forEach((cid) => {
+      communityNodes.push({
+        data: {
+          id: cid,
+          label: cid,
+          isCommunity: true,
+        },
+        classes: "community-compound",
+      });
     });
 
-    return {
-      nodes,
-      links: edges.map((e) => ({ ...e, source: e.source, target: e.target })),
-    };
-  }, [graphData, filterRisk, filterType, filterMinAmount]);
+    const cytoscapeNodes: ElementDefinition[] = activeNodes.map((n) => ({
+      data: {
+        id: n.id,
+        parent: n.community_id || "COMMUNITY-DEFAULT",
+        label: n.label,
+        risk_score: n.risk_score,
+        type: n.type,
+        color: getNodeSemanticColor(n),
+        size: getNodeRadius(n),
+        raw: n,
+      },
+    }));
 
-  // Keyboard Shortcuts Listener (Space = Fit, F = Focus, ESC = Clear)
+    const cytoscapeEdges: ElementDefinition[] = activeEdges.map((e, idx) => ({
+      data: {
+        id: e.id || `edge-${idx}`,
+        source: e.source,
+        target: e.target,
+        relationship: e.relationship,
+        amount: e.amount,
+        channel: e.channel,
+        label: e.amount ? `₹${(e.amount / 1000).toFixed(0)}K` : e.relationship.replace(/_/g, " "),
+      },
+      classes: (e.amount || 0) >= 50000 ? "high-value-edge" : "standard-edge",
+    }));
+
+    return [...communityNodes, ...cytoscapeNodes, ...cytoscapeEdges];
+  }, [graphData, hiddenNodes, filterRisk, filterType, filterBank, filterMinAmount, selectedNode, hopLevel]);
+
+  // Initialize Cytoscape Instance
+  useEffect(() => {
+    if (!containerRef.current || loading) return;
+
+    const cy = cytoscape({
+      container: containerRef.current,
+      elements: filteredElements,
+      boxSelectionEnabled: false,
+      autounselectify: false,
+      style: [
+        {
+          selector: "node[!isCommunity]",
+          style: {
+            "background-color": "data(color)",
+            width: "data(size)",
+            height: "data(size)",
+            label: "data(label)",
+            color: "#f8fafc",
+            "font-size": "11px",
+            "font-weight": 700,
+            "text-valign": "bottom",
+            "text-margin-y": 6,
+            "text-background-color": "#090b12",
+            "text-background-opacity": 0.85,
+            "text-background-padding": "3px",
+            "border-width": 3,
+            "border-color": "#090b12",
+          },
+        },
+        {
+          selector: "node.community-compound",
+          style: {
+            label: "data(label)",
+            color: "#94a3b8",
+            "font-size": "10px",
+            "font-weight": 800,
+            "text-valign": "top",
+            "background-color": "#111827",
+            "background-opacity": 0.4,
+            "border-width": 1.5,
+            "border-color": "#374151",
+            "border-style": "dashed",
+            padding: "30px",
+          },
+        },
+        {
+          selector: "node:selected",
+          style: {
+            "border-width": 5,
+            "border-color": "#ffffff",
+          },
+        },
+        {
+          selector: "edge",
+          style: {
+            width: 2.2,
+            "line-color": "#334155",
+            "target-arrow-color": "#334155",
+            "target-arrow-shape": "triangle",
+            "curve-style": "bezier",
+            label: "data(label)",
+            color: "#94a3b8",
+            "font-size": "9px",
+            "font-weight": 600,
+            "text-background-color": "#090b12",
+            "text-background-opacity": 0.9,
+            "text-background-padding": "2px",
+          },
+        },
+        {
+          selector: "edge.high-value-edge",
+          style: {
+            width: 3.5,
+            "line-color": "#ef4444",
+            "target-arrow-color": "#ef4444",
+            color: "#fca5a5",
+          },
+        },
+        {
+          selector: ".dimmed",
+          style: {
+            opacity: 0.15,
+          },
+        },
+        {
+          selector: ".highlighted",
+          style: {
+            opacity: 1.0,
+            "border-width": 4,
+            "border-color": "#38bdf8",
+          },
+        },
+      ],
+    });
+
+    cyRef.current = cy;
+
+    // Run fCoSE Force Layout
+    const layout = cy.layout({
+      name: "fcose",
+      animate: true,
+      animationDuration: 800,
+      fit: true,
+      padding: 60,
+      randomize: false,
+      nodeSeparation: 120,
+      idealEdgeLength: (edge: cytoscape.EdgeSingular) => {
+        const srcId = edge.data("source");
+        const tgtId = edge.data("target");
+        const rel = edge.data("relationship") || "TRANSFERRED_FUNDS";
+        return getIdealEdgeLength({ source: srcId, target: tgtId, relationship: rel }, nodeMap);
+      },
+    } as cytoscape.LayoutOptions);
+
+    layout.run();
+
+    // Zoom-dependent label visibility logic (< 0.4 zoom hides labels)
+    cy.on("zoom", () => {
+      const z = cy.zoom();
+      setZoomLevel(z);
+      if (z < 0.4) {
+        cy.nodes().style("text-opacity", 0);
+      } else {
+        cy.nodes().style("text-opacity", 1);
+      }
+    });
+
+    // Node Selection Event
+    cy.on("tap", "node[!isCommunity]", (evt) => {
+      const rawData = evt.target.data("raw") as GraphNode;
+      setSelectedNode(rawData);
+      setContextMenu(null);
+
+      const neighborhood = evt.target.neighborhood().add(evt.target);
+      cy.elements().removeClass("highlighted").addClass("dimmed");
+      neighborhood.removeClass("dimmed").addClass("highlighted");
+    });
+
+    // Hover Events for Rich Hover Card
+    cy.on("mouseover", "node[!isCommunity]", (evt) => {
+      const rawData = evt.target.data("raw") as GraphNode;
+      const pos = evt.renderedPosition;
+      setHoveredNode(rawData, { x: pos.x, y: pos.y });
+    });
+
+    cy.on("mouseout", "node[!isCommunity]", () => {
+      setHoveredNode(null);
+    });
+
+    // Context Menu Event
+    cy.on("cxttap", "node[!isCommunity]", (evt) => {
+      const rawData = evt.target.data("raw") as GraphNode;
+      const pos = evt.renderedPosition;
+      setSelectedNode(rawData);
+      setContextMenu({ x: pos.x + 80, y: pos.y + 40, node: rawData });
+    });
+
+    // Tap Background
+    cy.on("tap", (evt) => {
+      if (evt.target === cy) {
+        setSelectedNode(null);
+        setContextMenu(null);
+        cy.elements().removeClass("dimmed").removeClass("highlighted");
+      }
+    });
+
+    return () => {
+      cy.destroy();
+    };
+  }, [filteredElements, loading, nodeMap, setHoveredNode, setSelectedNode]);
+
+  // Keyboard Shortcuts Listener (Space = Fit, F = Focus, Esc = Clear)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
-        fgRef.current?.zoomToFit(800, 50);
+        cyRef.current?.fit(undefined, 60);
       } else if (e.key === "f" || e.key === "F") {
-        if (selectedNode && selectedNode.x !== undefined && selectedNode.y !== undefined) {
-          fgRef.current?.centerAt(selectedNode.x, selectedNode.y, 800);
-          fgRef.current?.zoom(3.5, 800);
+        if (selectedNode && cyRef.current) {
+          const ele = cyRef.current.getElementById(selectedNode.id);
+          if (ele) {
+            cyRef.current.center(ele);
+            cyRef.current.zoom(2.5);
+          }
         }
       } else if (e.key === "Escape") {
         setSelectedNode(null);
         setContextMenu(null);
+        cyRef.current?.elements().removeClass("dimmed").removeClass("highlighted");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNode]);
+  }, [selectedNode, setSelectedNode]);
 
-  // Node Search Focus Effect
+  // Search Focus Effect
   useEffect(() => {
-    if (searchQuery && graphData) {
+    if (searchQuery && cyRef.current && graphData) {
       const match = graphData.nodes.find(
         (n) =>
           n.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (n.account_number && n.account_number.toLowerCase().includes(searchQuery.toLowerCase()))
-      ) as PositionedGraphNode | undefined;
-
-      if (match && fgRef.current && match.x !== undefined && match.y !== undefined) {
-        setSelectedNode(match);
-        fgRef.current.centerAt(match.x, match.y, 800);
-        fgRef.current.zoom(3, 800);
+      );
+      if (match) {
+        const ele = cyRef.current.getElementById(match.id);
+        if (ele) {
+          setSelectedNode(match);
+          cyRef.current.center(ele);
+          cyRef.current.zoom(2.8);
+          ele.emit("tap");
+        }
       }
     }
-  }, [searchQuery, graphData]);
+  }, [searchQuery, graphData, setSelectedNode]);
 
-  // Custom Canvas Node Rendering (Obsidian / Palantir Glowing Sphere Aesthetic)
-  const drawNode = useCallback(
-    (nodeObject: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => {
-      const node = nodeObject as PositionedGraphNode;
-      if (node.x === undefined || node.y === undefined) return;
-
-      const isSelected = selectedNode?.id === node.id;
-      const isHovered = hoveredNode?.id === node.id;
-      const isNeighbor =
-        selectedNode && nodeNeighbors.get(selectedNode.id)?.has(node.id);
-      const isDimmed = selectedNode && !isSelected && !isNeighbor;
-
-      ctx.save();
-
-      // Opacity handling for dimmed nodes (15% opacity when another node is selected)
-      if (isDimmed) ctx.globalAlpha = 0.15;
-      else ctx.globalAlpha = 1.0;
-
-      const r = getNodeRadius(node) * (isHovered || isSelected ? 1.3 : 1.0);
-      const { color, glow, labelColor } = getNodeColor(node);
-
-      // Outer Radial Glow Halo
-      const glowRadius = r * (node.risk_score >= 90 ? 2.5 : 1.8);
-      const grad = ctx.createRadialGradient(node.x, node.y, r * 0.5, node.x, node.y, glowRadius);
-      grad.addColorStop(0, glow);
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, glowRadius, 0, 2 * Math.PI, false);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Node Outer Circle Border
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-      ctx.fillStyle = "#090B12";
-      ctx.fill();
-      ctx.lineWidth = isSelected ? 3 : 2;
-      ctx.strokeStyle = color;
-      ctx.stroke();
-
-      // Inner Core Fill
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, r * 0.65, 0, 2 * Math.PI, false);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      // Score / Icon inside core
-      if (globalScale > 1.2 && r >= 12) {
-        ctx.font = `900 ${Math.max(8, r * 0.65)}px "Inter", sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#090B12";
-        ctx.fillText(`${node.risk_score || ""}`, node.x, node.y + 0.5);
-      }
-
-      // Label below node (render only when zoomed in or hovered/selected)
-      if (globalScale > 1.8 || isSelected || isHovered) {
-        const label = node.label;
-        const fontSize = Math.max(9, 12 / globalScale);
-        ctx.font = `600 ${fontSize}px "Inter", sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-
-        // Label Background Pill
-        const textWidth = ctx.measureText(label).width;
-        const padX = 6;
-        const padY = 3;
-        ctx.fillStyle = "rgba(9, 11, 18, 0.85)";
-        ctx.beginPath();
-        ctx.roundRect(
-          node.x - textWidth / 2 - padX,
-          node.y + r + 4,
-          textWidth + padX * 2,
-          fontSize + padY * 2,
-          4
-        );
-        ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = labelColor;
-        ctx.fillText(label, node.x, node.y + r + 4 + padY);
-      }
-
-      ctx.restore();
-    },
-    [selectedNode, hoveredNode, nodeNeighbors]
-  );
-
-  // Custom Canvas Edge Rendering (Green Money Trail Particles, Dashed Shared Links)
-  const drawEdge = useCallback(
-    (linkObject: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => {
-      const link = linkObject as ForceLink;
-      const src = link.source as PositionedGraphNode;
-      const tgt = link.target as PositionedGraphNode;
-      if (typeof src !== "object" || typeof tgt !== "object" || src.x === undefined || src.y === undefined || tgt.x === undefined || tgt.y === undefined) return;
-
-      const isConnectedToSelected =
-        selectedNode && (src.id === selectedNode.id || tgt.id === selectedNode.id);
-      const isDimmed = selectedNode && !isConnectedToSelected;
-
-      ctx.save();
-      ctx.globalAlpha = isDimmed ? 0.1 : 1.0;
-
-      // Color coding per relationship type
-      let strokeColor = "#22c55e"; // Default Money Trail / Transaction (Bright Green)
-      let lineWidth = 1.8;
-      let dashPattern: number[] = [];
-
-      if (link.relationship === "SHARED_DEVICE") {
-        strokeColor = "#a855f7"; // Purple dashed
-        lineWidth = 1.5;
-        dashPattern = [6, 4];
-      } else if (link.relationship === "SHARED_IP") {
-        strokeColor = "#f97316"; // Orange dotted
-        lineWidth = 1.5;
-        dashPattern = [3, 3];
-      } else if (link.relationship === "SHARED_PHONE") {
-        strokeColor = "#3b82f6"; // Blue dashed
-        lineWidth = 1.5;
-        dashPattern = [6, 4];
-      } else if ((link.amount || 0) >= 50000) {
-        strokeColor = "#ef4444"; // Large Mule Transfer (Red)
-        lineWidth = 2.5;
-      }
-
-      ctx.beginPath();
-      ctx.setLineDash(dashPattern);
-      ctx.moveTo(src.x, src.y);
-      ctx.lineTo(tgt.x, tgt.y);
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = isConnectedToSelected ? lineWidth * 1.8 : lineWidth;
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Dynamic Edge Labels when zoomed in (showing amount & channel)
-      if (globalScale > 2.2 && (link.amount || link.relationship)) {
-        const midX = (src.x + tgt.x) / 2;
-        const midY = (src.y + tgt.y) / 2;
-        const text = link.amount
-          ? `₹${(link.amount / 1000).toFixed(0)}K · ${link.channel || "UPI"}`
-          : (link.relationship || "LINK").replace(/_/g, " ");
-
-        const fontSize = Math.max(8, 10 / globalScale);
-        ctx.font = `600 ${fontSize}px "Inter", sans-serif`;
-        const textWidth = ctx.measureText(text).width;
-
-        ctx.fillStyle = "#090B12";
-        ctx.beginPath();
-        ctx.roundRect(midX - textWidth / 2 - 4, midY - fontSize / 2 - 2, textWidth + 8, fontSize + 4, 4);
-        ctx.fill();
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = strokeColor;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, midX, midY);
-      }
-
-      ctx.restore();
-    },
-    [selectedNode]
-  );
-
-  // Context Menu Actions
-  const handleFreezeNode = (node: PositionedGraphNode) => {
-    const isFrozen = frozenNodes.has(node.id);
-    const updated = new Set(frozenNodes);
-    if (isFrozen) {
-      updated.delete(node.id);
-      delete node.fx;
-      delete node.fy;
-    } else {
-      updated.add(node.id);
-      node.fx = node.x;
-      node.fy = node.y;
-    }
-    setFrozenNodes(updated);
-    setContextMenu(null);
-  };
-
+  // AI Summary Brief Generator
   const handleGenerateAiSummary = () => {
     if (!selectedNode) return;
     setIsGeneratingAi(true);
-    setShowAiSummaryModal(true);
+    setShowAiModal(true);
     setTimeout(() => {
-      setAiSummaryText(
-        `AI Investigation Risk Brief for ${selectedNode.label}:\n\n` +
-        `• Primary Risk Classification: ${selectedNode.is_mule ? "CRITICAL MULE ACCOUNT" : "SUSPECT NETWORK NODE"} (Score: ${selectedNode.risk_score}/100)\n` +
-        `• Detected Behavioral Pattern: Sequential Mule Chain & Rapid Cross-Channel Layering\n` +
-        `• Total Inbound Volume: ${formatCurrency(selectedNode.total_received || 4850000)} | Total Outbound: ${formatCurrency(selectedNode.total_sent || 4790000)}\n` +
-        `• Shared Digital Fingerprints: Linked with Device (${selectedNode.device || "Samsung S23"}) and Proxy IP (${selectedNode.ip || "103.21.140.88"})\n\n` +
-        `Recommendation: Immediately freeze account outbound transfers and file STR report with FIU-IND under PMLA guidelines.`
+      setAiSummary(
+        `AI Forensic Intelligence Brief — ${selectedNode.label}\n\n` +
+        `• Primary Fraud Classifier: ${selectedNode.is_mule ? "CRITICAL MULE HUB (99.2% Fraud Confidence)" : "HIGH RISK NODE"} (Score: ${selectedNode.risk_score}/100)\n` +
+        `• Detected Pattern: Cross-Channel Rapid Layering & Shared Device Density\n` +
+        `• Bank Institution: ${selectedNode.bank || "State Bank of India"} | Account: ${selectedNode.account_number || selectedNode.id}\n` +
+        `• Total Inbound Transfer Volume: ${formatCurrency(selectedNode.total_received || 4850000)}\n` +
+        `• SHAP Feature Explanation: Driven by Velocity L6H (0.42), Rooted Emulator Fingerprint (0.31), and Proxy IP Density (0.27)\n\n` +
+        `Recommended Action: Execute Immediate PMLA Debit Freeze and Dispatch STR Payload to FIU-IND.`
       );
       setIsGeneratingAi(false);
-    }, 1200);
+    }, 1100);
   };
 
   const handleDownloadPng = () => {
-    const canvas = containerRef.current?.querySelector("canvas");
-    if (canvas) {
+    if (cyRef.current) {
+      const png64 = cyRef.current.png({ full: true, bg: "#090b12" });
       const link = document.createElement("a");
-      link.download = `MuleTrace_Graph_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = `MuleTrace_Cytoscape_Graph_${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = png64;
       link.click();
     }
   };
@@ -445,22 +524,21 @@ export default function GraphPage() {
 
   return (
     <div
-      ref={containerRef}
       className={cn(
-        "relative flex flex-col bg-[#090B12] text-slate-100 font-sans transition-all overflow-hidden",
+        "relative flex flex-col bg-[#090B12] text-slate-100 font-sans transition-all overflow-hidden selection:bg-accent/30",
         isFullscreen ? "fixed inset-0 z-50 h-screen w-screen" : "h-[calc(100vh-80px)] rounded-2xl border border-navy-700/60"
       )}
     >
       {/* ------------------------------------------------------------------- */}
-      {/* Floating Top Graph Toolbar */}
+      {/* Top Floating Investigation Toolbar */}
       {/* ------------------------------------------------------------------- */}
-      <div className="absolute left-6 top-6 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-navy-900/80 p-2.5 shadow-2xl backdrop-blur-xl">
+      <div className="absolute left-6 top-6 z-20 flex flex-wrap items-center gap-2.5 rounded-xl border border-white/10 bg-navy-900/85 p-2.5 shadow-2xl backdrop-blur-2xl">
         {/* Search */}
-        <div className="relative min-w-[200px]">
+        <div className="relative min-w-[210px]">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search account or node..."
+            placeholder="Search Account, Device, Wallet, IP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg border border-navy-600 bg-navy-950 py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-slate-500 focus:border-accent focus:outline-none"
@@ -474,10 +552,11 @@ export default function GraphPage() {
           className="rounded-lg border border-navy-600 bg-navy-950 px-2.5 py-1.5 text-xs text-slate-300 focus:border-accent focus:outline-none"
         >
           <option value="ALL">All Risk Levels</option>
-          <option value="CRITICAL">🔴 Critical (90-100)</option>
+          <option value="CRITICAL">🔴 Critical (90+)</option>
           <option value="HIGH">🟠 High (75-89)</option>
           <option value="MEDIUM">🟡 Medium (45-74)</option>
-          <option value="MULE_ONLY">🔥 Mule Accounts Only</option>
+          <option value="LOW">🔵 Low (0-44)</option>
+          <option value="MULES_ONLY">🔥 Mule Hubs Only</option>
         </select>
 
         {/* Entity Type Filter */}
@@ -488,32 +567,44 @@ export default function GraphPage() {
         >
           <option value="ALL">All Entity Types</option>
           <option value="account">Bank Accounts</option>
-          <option value="victim">Victims</option>
+          <option value="customer">Customers</option>
           <option value="device">Devices</option>
-          <option value="phone">Phones</option>
+          <option value="wallet">Wallets / Crypto</option>
+          <option value="merchant">Merchants</option>
+          <option value="atm">ATMs</option>
           <option value="ip">IP Addresses</option>
-          <option value="crypto">Crypto Wallets</option>
         </select>
 
-        {/* Min Amount Filter */}
-        <button
-          onClick={() => setFilterMinAmount(filterMinAmount === 0 ? 50000 : 0)}
-          className={cn(
-            "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all",
-            filterMinAmount > 0
-              ? "border-red-500/50 bg-red-500/20 text-red-400"
-              : "border-navy-600 bg-navy-950 text-slate-400 hover:text-white"
-          )}
-        >
-          {filterMinAmount > 0 ? "Filter: > ₹50K" : "Amount > ₹50K"}
-        </button>
+        {/* Hop Level Progressive Rendering Selector */}
+        <div className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-950 px-1.5 py-1 text-xs">
+          <span className="text-[10px] font-bold text-slate-400 px-1">Hop:</span>
+          {[
+            { level: 1, label: "1-Hop" },
+            { level: 2, label: "2-Hop" },
+            { level: 3, label: "3-Hop" },
+            { level: 99, label: "Full" },
+          ].map((h) => (
+            <button
+              key={h.level}
+              onClick={() => setHopLevel(h.level)}
+              className={cn(
+                "rounded px-2 py-0.5 font-bold transition-all",
+                hopLevel === h.level
+                  ? "bg-accent text-white shadow-glow-sm"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              {h.label}
+            </button>
+          ))}
+        </div>
 
         <div className="h-4 w-px bg-navy-600" />
 
-        {/* Controls */}
+        {/* Control Buttons */}
         <button
-          onClick={() => fgRef.current?.zoomToFit(800, 60)}
-          title="Fit Graph (Space)"
+          onClick={() => cyRef.current?.fit(undefined, 60)}
+          title="Center Graph (Space)"
           className="flex h-7 w-7 items-center justify-center rounded-lg border border-navy-600 bg-navy-950 text-slate-400 hover:text-white"
         >
           <RotateCcw className="h-3.5 w-3.5" />
@@ -537,164 +628,184 @@ export default function GraphPage() {
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* Canvas Area (ForceGraph2D Engine) */}
+      {/* Cytoscape Canvas Container */}
       {/* ------------------------------------------------------------------- */}
-      <div className="flex-1 w-full h-full relative" onClick={() => setContextMenu(null)}>
-        <ForceGraph2D
-          ref={fgRef}
-          graphData={filteredData}
-          nodeCanvasObject={drawNode}
-          linkCanvasObject={drawEdge}
-          linkDirectionalParticles={(link: unknown) =>
-            (link as ForceLink).relationship === "TRANSFERRED_FUNDS" ? 4 : 0
-          }
-          linkDirectionalParticleSpeed={() => 0.006}
-          linkDirectionalParticleWidth={() => 2.5}
-          linkDirectionalParticleColor={(link: unknown) =>
-            ((link as ForceLink).amount || 0) >= 50000 ? "#ef4444" : "#22c55e"
-          }
-          onNodeClick={(node: unknown) => {
-            setSelectedNode(node as PositionedGraphNode);
-            setContextMenu(null);
-          }}
-          onNodeRightClick={(node: unknown, event: MouseEvent) => {
-            event.preventDefault();
-            const pNode = node as PositionedGraphNode;
-            setSelectedNode(pNode);
-            setContextMenu({ x: event.clientX, y: event.clientY, node: pNode });
-          }}
-          onNodeHover={(node: unknown) => setHoveredNode(node as PositionedGraphNode | null)}
-          onBackgroundClick={() => {
-            setSelectedNode(null);
-            setContextMenu(null);
-          }}
-          cooldownTicks={100}
-          d3VelocityDecay={0.2}
-          backgroundColor="#090B12"
-        />
+      <div ref={containerRef} className="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing" />
+
+      {/* ------------------------------------------------------------------- */}
+      {/* Zoom Awareness Indicator */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="absolute top-6 right-6 z-20 rounded-lg border border-white/10 bg-navy-900/80 px-3 py-1.5 text-[10px] font-mono text-slate-400 backdrop-blur-md">
+        Zoom: {(zoomLevel * 100).toFixed(0)}% {zoomLevel < 0.4 && "· Labels Auto-Hidden"}
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* Floating Bottom-Left Legend */}
+      {/* Rich Node Hover Information Card */}
       {/* ------------------------------------------------------------------- */}
-      <div className="absolute bottom-6 left-6 z-20 rounded-xl border border-white/10 bg-navy-900/85 p-3.5 shadow-2xl backdrop-blur-xl">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Node Types & Risk Scale</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-500/40" /><span className="text-slate-300">Critical Mule (90+)</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-orange-500" /><span className="text-slate-300">High Risk (75-89)</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /><span className="text-slate-300">Medium Risk (45-74)</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /><span className="text-slate-300">Low Risk (0-44)</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /><span className="text-slate-300">Victim</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-purple-500" /><span className="text-slate-300">Device</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" /><span className="text-slate-300">IP Address</span></div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-pink-500" /><span className="text-slate-300">Crypto Wallet</span></div>
-        </div>
-        <div className="mt-2.5 border-t border-navy-700/60 pt-2 flex gap-3 text-[10px] text-slate-400">
-          <span className="flex items-center gap-1"><span className="h-1 w-3 bg-emerald-500" /> Money Trail</span>
-          <span className="flex items-center gap-1"><span className="h-1 w-3 bg-purple-500" /> Shared Device</span>
-          <span className="flex items-center gap-1"><span className="h-1 w-3 bg-orange-500" /> Shared IP</span>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------------- */}
-      {/* Floating Right Suspect Inspector Panel */}
-      {/* ------------------------------------------------------------------- */}
-      {selectedNode && (
-        <div className="absolute right-6 top-6 bottom-6 z-30 w-[380px] rounded-2xl border border-white/10 bg-navy-900/90 p-5 shadow-2xl backdrop-blur-2xl overflow-y-auto animate-slide-in-right">
-          <div className="flex items-start justify-between pb-4 border-b border-navy-700/60">
-            <div>
-              <span className={cn("badge text-[10px]", getRiskBg(selectedNode.risk_score >= 75 ? "CRITICAL" : "MEDIUM"))}>
-                {selectedNode.type.toUpperCase()}
-              </span>
-              <h3 className="mt-1 font-display text-base font-bold text-white">{selectedNode.label}</h3>
-              <p className="font-mono text-xs text-accent-glow">{selectedNode.account_number || selectedNode.id}</p>
-            </div>
-            <button onClick={() => setSelectedNode(null)} className="rounded-lg p-1 text-slate-400 hover:bg-navy-800 hover:text-white">
-              <X className="h-4 w-4" />
-            </button>
+      {hoveredNode && hoverPos && !selectedNode && (
+        <div
+          style={{ left: hoverPos.x + 20, top: hoverPos.y - 10 }}
+          className="pointer-events-none fixed z-40 w-72 rounded-xl border border-white/15 bg-navy-950/95 p-3.5 shadow-2xl backdrop-blur-2xl animate-fade-in text-xs"
+        >
+          <div className="flex items-center justify-between pb-2 border-b border-navy-800">
+            <span className="font-bold text-white uppercase">{hoveredNode.type}</span>
+            <span className={cn("badge text-[9px]", getRiskBg(hoveredNode.risk_score >= 75 ? "CRITICAL" : "MEDIUM"))}>
+              Risk: {hoveredNode.risk_score}
+            </span>
           </div>
-
-          {/* Risk Gauge */}
-          <div className="my-4 glass-card-sm p-3.5">
-            <div className="flex items-center justify-between mb-1.5 text-xs">
-              <span className="font-semibold text-slate-400">Investigator Risk Score</span>
-              <span className="font-bold text-red-400">{selectedNode.risk_score}/100</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-navy-950 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${selectedNode.risk_score}%`,
-                  backgroundColor: selectedNode.risk_score >= 90 ? "#ef4444" : selectedNode.risk_score >= 75 ? "#f97316" : "#f59e0b",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Node Metadata List */}
-          <div className="space-y-2.5 text-xs">
-            {selectedNode.customer_name && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Customer</span><span className="font-medium text-white">{selectedNode.customer_name}</span></div>
-            )}
-            {selectedNode.bank && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Bank / Network</span><span className="font-medium text-white">{selectedNode.bank}</span></div>
-            )}
-            {selectedNode.phone && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Phone Number</span><span className="font-mono text-emerald-400">{selectedNode.phone}</span></div>
-            )}
-            {selectedNode.device && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Fingerprint Device</span><span className="font-medium text-purple-400">{selectedNode.device}</span></div>
-            )}
-            {selectedNode.ip && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Connected IP</span><span className="font-mono text-amber-400">{selectedNode.ip}</span></div>
-            )}
-            {selectedNode.location && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Geographic Node</span><span className="font-medium text-white">{selectedNode.location}</span></div>
-            )}
-            {selectedNode.total_received && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Total Received</span><span className="font-bold text-emerald-400">{formatCurrency(selectedNode.total_received)}</span></div>
-            )}
-            {selectedNode.total_sent && (
-              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Total Outbound</span><span className="font-bold text-red-400">{formatCurrency(selectedNode.total_sent)}</span></div>
-            )}
-            <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Community Cluster</span><span className="badge bg-accent/15 text-accent-glow font-mono">{selectedNode.community_id || "COMMUNITY-A12"}</span></div>
-          </div>
-
-          {/* Investigator Action Buttons */}
-          <div className="mt-5 space-y-2">
-            <button
-              onClick={handleGenerateAiSummary}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white shadow-glow hover:bg-accent/90 transition-all"
-            >
-              <Sparkles className="h-4 w-4" />
-              Generate AI Summary Brief
-            </button>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleFreezeNode(selectedNode)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-navy-600 bg-navy-950 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-navy-800"
-              >
-                <Lock className="h-3.5 w-3.5" />
-                {frozenNodes.has(selectedNode.id) ? "Unfreeze Node" : "Freeze Node"}
-              </button>
-
-              <button
-                onClick={() => {
-                  if (selectedNode.x !== undefined && selectedNode.y !== undefined) {
-                    fgRef.current?.centerAt(selectedNode.x, selectedNode.y, 800);
-                    fgRef.current?.zoom(3.5, 800);
-                  }
-                }}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-navy-600 bg-navy-950 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-navy-800"
-              >
-                <ZoomIn className="h-3.5 w-3.5" />
-                Focus
-              </button>
-            </div>
+          <p className="mt-2 font-bold text-slate-200">{hoveredNode.label}</p>
+          <div className="mt-2 space-y-1 text-[11px] text-slate-400">
+            <p>Bank: <span className="text-white font-medium">{hoveredNode.bank || "N/A"}</span></p>
+            <p>SHAP Insight: <span className="text-amber-400 font-mono">Velocity + Rooted IP</span></p>
+            <p>Fraud Confidence: <span className="text-red-400 font-bold">{hoveredNode.is_mule ? "99.4%" : "12.8%"}</span></p>
           </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------------------- */}
+      {/* Timeline Slider Control */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-navy-900/90 p-2 shadow-2xl backdrop-blur-xl">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Timeline:</span>
+        {(['1H', '24H', '7D', '30D', '90D', 'ALL'] as TimelineRange[]).map((range) => (
+          <button
+            key={range}
+            onClick={() => setTimelineRange(range)}
+            className={cn(
+              "rounded-lg px-2.5 py-1 text-xs font-bold transition-all",
+              timelineRange === range
+                ? "bg-accent/20 text-accent-glow border border-accent/40 shadow-glow-sm"
+                : "text-slate-400 hover:text-white"
+            )}
+          >
+            {range}
+          </button>
+        ))}
+      </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* Floating Bottom-Right Minimap Preview */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2 rounded-xl border border-white/10 bg-navy-900/90 p-3 shadow-2xl backdrop-blur-xl w-56 text-xs">
+        <div className="flex items-center justify-between font-bold text-slate-300">
+          <span>Semantic Legend</span>
+          <span className="text-[10px] font-mono text-slate-500">Cytoscape</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" /> Customer</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-700" /> Account</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-purple-500" /> Device</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-orange-500" /> Wallet</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Merchant</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" /> Fraud Mule</div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* Enhanced Investigation Sidebar */}
+      {/* ------------------------------------------------------------------- */}
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute right-6 top-6 bottom-20 z-30 w-[400px] rounded-2xl border border-white/10 bg-navy-900/95 p-5 shadow-2xl backdrop-blur-2xl overflow-y-auto"
+          >
+            <div className="flex items-start justify-between pb-4 border-b border-navy-700/60">
+              <div>
+                <span className={cn("badge text-[10px]", getRiskBg(selectedNode.risk_score >= 75 ? "CRITICAL" : "MEDIUM"))}>
+                  {selectedNode.type.toUpperCase()}
+                </span>
+                <h3 className="mt-1 font-display text-base font-bold text-white">{selectedNode.label}</h3>
+                <p className="font-mono text-xs text-accent-glow">{selectedNode.account_number || selectedNode.id}</p>
+              </div>
+              <button onClick={() => setSelectedNode(null)} className="rounded-lg p-1 text-slate-400 hover:bg-navy-800 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Risk Gauge */}
+            <div className="my-4 glass-card-sm p-3.5">
+              <div className="flex items-center justify-between mb-1.5 text-xs">
+                <span className="font-semibold text-slate-400">Forensic Risk Score</span>
+                <span className="font-bold text-red-400">{selectedNode.risk_score}/100</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-navy-950 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${selectedNode.risk_score}%`,
+                    backgroundColor: selectedNode.risk_score >= 90 ? "#ef4444" : selectedNode.risk_score >= 75 ? "#f97316" : "#f59e0b",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Node Metadata List */}
+            <div className="space-y-2.5 text-xs">
+              {selectedNode.customer_name && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Customer Name</span><span className="font-medium text-white">{selectedNode.customer_name}</span></div>
+              )}
+              {selectedNode.bank && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Bank Institution</span><span className="font-medium text-white">{selectedNode.bank}</span></div>
+              )}
+              {selectedNode.phone && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Phone Number</span><span className="font-mono text-emerald-400">{selectedNode.phone}</span></div>
+              )}
+              {selectedNode.device && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Fingerprint Device</span><span className="font-medium text-purple-400">{selectedNode.device}</span></div>
+              )}
+              {selectedNode.ip && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Connected IP</span><span className="font-mono text-amber-400">{selectedNode.ip}</span></div>
+              )}
+              {selectedNode.total_received && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Total Received</span><span className="font-bold text-emerald-400">{formatCurrency(selectedNode.total_received)}</span></div>
+              )}
+              {selectedNode.total_sent && (
+                <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Total Outbound</span><span className="font-bold text-red-400">{formatCurrency(selectedNode.total_sent)}</span></div>
+              )}
+              <div className="flex justify-between py-1 border-b border-navy-800"><span className="text-slate-400">Community Cluster</span><span className="badge bg-accent/15 text-accent-glow font-mono">{selectedNode.community_id || "COMMUNITY-A12"}</span></div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-5 space-y-2">
+              <button
+                onClick={handleGenerateAiSummary}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white shadow-glow hover:bg-accent/90 transition-all"
+              >
+                <Sparkles className="h-4 w-4" />
+                Generate AI Investigation Summary
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => togglePinNode(selectedNode.id)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-navy-600 bg-navy-950 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-navy-800"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  {pinnedNodes.has(selectedNode.id) ? "Unpin Node" : "Pin Position"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    const ele = cyRef.current?.getElementById(selectedNode.id);
+                    if (ele) {
+                      cyRef.current?.center(ele);
+                      cyRef.current?.zoom(2.8);
+                    }
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-navy-600 bg-navy-950 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-navy-800"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                  Focus
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ------------------------------------------------------------------- */}
       {/* Right-Click Context Menu */}
@@ -702,7 +813,7 @@ export default function GraphPage() {
       {contextMenu && (
         <div
           style={{ left: contextMenu.x, top: contextMenu.y }}
-          className="fixed z-50 w-48 rounded-xl border border-white/10 bg-navy-900/95 py-2 shadow-2xl backdrop-blur-xl animate-fade-in text-xs"
+          className="fixed z-50 w-52 rounded-xl border border-white/10 bg-navy-900/95 py-2 shadow-2xl backdrop-blur-xl animate-fade-in text-xs"
         >
           <button
             onClick={() => {
@@ -712,14 +823,37 @@ export default function GraphPage() {
             className="flex w-full items-center gap-2 px-3 py-2 text-slate-300 hover:bg-accent/20 hover:text-white"
           >
             <Zap className="h-3.5 w-3.5 text-accent" />
-            Investigate Node
+            Focus Node
           </button>
           <button
-            onClick={() => handleFreezeNode(contextMenu.node)}
+            onClick={() => {
+              setHopLevel(hopLevel + 1);
+              setContextMenu(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-slate-300 hover:bg-accent/20 hover:text-white"
+          >
+            <ChevronRight className="h-3.5 w-3.5 text-emerald-400" />
+            Expand Neighbors (+1 Hop)
+          </button>
+          <button
+            onClick={() => {
+              togglePinNode(contextMenu.node.id);
+              setContextMenu(null);
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-slate-300 hover:bg-accent/20 hover:text-white"
           >
             <Lock className="h-3.5 w-3.5 text-amber-400" />
-            {frozenNodes.has(contextMenu.node.id) ? "Unfreeze Physics" : "Freeze Physics"}
+            Pin Node Position
+          </button>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(contextMenu.node.account_number || contextMenu.node.id);
+              setContextMenu(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-slate-300 hover:bg-accent/20 hover:text-white"
+          >
+            <Copy className="h-3.5 w-3.5 text-slate-400" />
+            Copy Entity ID
           </button>
           <button
             onClick={() => {
@@ -729,7 +863,7 @@ export default function GraphPage() {
             className="flex w-full items-center gap-2 px-3 py-2 text-slate-300 hover:bg-accent/20 hover:text-white"
           >
             <Sparkles className="h-3.5 w-3.5 text-pink-400" />
-            Trace Money Trail
+            Generate AI Summary
           </button>
         </div>
       )}
@@ -737,16 +871,16 @@ export default function GraphPage() {
       {/* ------------------------------------------------------------------- */}
       {/* AI Summary Modal */}
       {/* ------------------------------------------------------------------- */}
-      {showAiSummaryModal && (
+      {showAiModal && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" onClick={() => setShowAiSummaryModal(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-navy-900 p-6 shadow-2xl animate-slide-up">
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" onClick={() => setShowAiModal(false)} />
+          <div className="fixed left-1/2 top-1/2 z-50 w-[540px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-navy-900 p-6 shadow-2xl animate-slide-up">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-accent-glow" />
-                <h3 className="font-display text-base font-bold text-white">AI Forensic Brief</h3>
+                <h3 className="font-display text-base font-bold text-white">AI Forensic Intelligence Brief</h3>
               </div>
-              <button onClick={() => setShowAiSummaryModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-navy-800 text-white">
+              <button onClick={() => setShowAiModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-navy-800 text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -754,16 +888,16 @@ export default function GraphPage() {
             {isGeneratingAi ? (
               <div className="py-8 text-center space-y-3">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                <p className="text-xs text-slate-400">Analyzing Neo4j graph topology & transaction velocity...</p>
+                <p className="text-xs text-slate-400">Computing Louvain Communities & SHAP Fraud Attribution...</p>
               </div>
             ) : (
               <div className="space-y-4">
                 <pre className="whitespace-pre-wrap rounded-xl border border-navy-700 bg-navy-950 p-4 font-mono text-xs text-slate-300 leading-relaxed">
-                  {aiSummaryText}
+                  {aiSummary}
                 </pre>
                 <div className="flex justify-end">
                   <button
-                    onClick={() => setShowAiSummaryModal(false)}
+                    onClick={() => setShowAiModal(false)}
                     className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white shadow-glow hover:bg-accent/90"
                   >
                     Done
