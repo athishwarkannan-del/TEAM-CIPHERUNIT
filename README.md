@@ -172,7 +172,7 @@ India's digital payment ecosystem processes **over 13 billion UPI transactions m
 ## ✨ Key Features
 
 ### 🔗 Graph Intelligence
-- Real-time transaction graph construction using NetworkX
+- Real-time transaction graph construction using Neo4j
 - Community detection (Louvain, Label Propagation)
 - Centrality analysis (PageRank, Betweenness, Degree)
 - Shortest path tracing between suspicious accounts
@@ -239,7 +239,7 @@ India's digital payment ecosystem processes **over 13 billion UPI transactions m
 │              ▼                ▼                ▼                             │
 │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                     │
 │   │ Graph Engine  │  │  ML Engine   │  │ Rule Engine   │                    │
-│   │ (NetworkX)    │  │ (Scikit/XGB) │  │ (Custom)      │                    │
+│   │ (Neo4j)       │  │ (Scikit/XGB) │  │ (Custom)      │                    │
 │   └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                     │
 │          │                 │                  │                              │
 │          └─────────────────┼──────────────────┘                             │
@@ -383,7 +383,7 @@ Account E ◀──₹30K──── Account F ──₹29K──▶ Account G
 │          ▼                                                       │
 │  ┌────────────────┐     ┌────────────────┐                       │
 │  │ Isolation      │     │ Graph Features │                       │
-│  │ Forest         │     │ (NetworkX)     │                       │
+│  │ Forest         │     │ (Neo4j)        │                       │
 │  │ (Anomaly Det.) │     │ • PageRank     │                       │
 │  └───────┬────────┘     │ • Centrality   │                       │
 │          │              │ • Community ID │                       │
@@ -725,8 +725,9 @@ Day 3: 28 transactions, ₹9.7L inflow
 ### Graph Engine
 | Technology | Purpose | Version |
 |:---|:---|:---:|
-| **NetworkX** | Graph construction & algorithms | 3.x |
-| **python-louvain** | Community detection | 0.16+ |
+| **Neo4j** | Graph database, construction & algorithms | 5.x |
+| **Neo4j Python Driver** | Python connectivity to Neo4j | 5.x |
+| **Neo4j GDS** | Graph Data Science (community detection, centrality, pathfinding) | 2.x |
 | **GraphSAGE (PyG)** | Graph neural networks | 2.x |
 
 ### ML Engine
@@ -932,7 +933,7 @@ TEAM-CIPHERUNIT/
 |:---|:---|:---|:---|
 | **Frontend** | SOC-style dashboard, investigation workspace, graph visualization | Next.js, TypeScript, React Flow | Frontend Team |
 | **Backend** | REST API, authentication, business logic orchestration | FastAPI, SQLAlchemy, Pydantic | Backend Team |
-| **Graph Engine** | Transaction graph construction, community detection, path analysis | NetworkX, python-louvain | Graph Team |
+| **Graph Engine** | Transaction graph construction, community detection, path analysis | Neo4j, Neo4j GDS | Graph Team |
 | **ML Engine** | Anomaly detection, classification, feature engineering | Scikit-learn, XGBoost, SHAP | ML Team |
 | **Rule Engine** | Deterministic fraud pattern rules, threshold evaluation | Python, configurable YAML/JSON | Backend Team |
 | **Risk Engine** | Multi-signal risk score fusion (Graph + ML + Rules) | Python | Backend Team |
@@ -1230,8 +1231,8 @@ Examples:
 
 | Module | Responsibility |
 |:---|:---|
-| **Graph Builder** | Construct transaction graphs from raw data (accounts → nodes, transactions → edges) |
-| **Graph Algorithms** | Run PageRank, Betweenness, Louvain, Label Propagation, Connected Components |
+| **Graph Builder** | Construct transaction graphs in Neo4j (accounts → nodes, transactions → relationships) |
+| **Graph Algorithms** | Run PageRank, Betweenness, Louvain, Label Propagation via Neo4j GDS |
 | **Pattern Detection** | Detect cycles, fan-in, fan-out, mule chains, circular flows |
 | **Graph Analytics** | Network-level statistics, density, diameter, clustering coefficients |
 | **Relationship Engine** | Map account-device, account-IP, account-beneficiary relationships |
@@ -1371,7 +1372,7 @@ the Free Software Foundation, either version 3 of the License, or
 - **Financial Intelligence Unit - India (FIU-IND)** — For STR/CTR reporting standards
 - **Indian Cyber Crime Coordination Centre (I4C)** — For cybercrime investigation frameworks
 - **NPCI** — For UPI transaction ecosystem documentation
-- **NetworkX** — For graph computation capabilities
+- **Neo4j** — For graph database and graph data science capabilities
 - **SHAP** — For model explainability
 - **FastAPI** — For high-performance API framework
 - **Next.js** — For production-grade React framework
