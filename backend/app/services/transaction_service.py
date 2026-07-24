@@ -1,10 +1,14 @@
 """
 MuleTrace AI — Transaction Service.
 
-Business logic service for financial transaction processing and retrieval.
+Business logic service for financial transaction processing, risk engine evaluation,
+and Neo4j graph synchronization.
 """
 
 import uuid
+from app.engines.graph.graph_builder import graph_builder
+from app.engines.ml.xgboost_model import ml_engine
+from app.engines.rules.rule_engine import rule_engine
 from app.models.transaction import Transaction
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.common import PaginatedResponse, PaginationMeta
@@ -12,7 +16,7 @@ from app.schemas.transaction import TransactionCreate, TransactionFilterParams, 
 
 
 class TransactionService:
-    """Service handling transaction operations."""
+    """Service handling transaction processing and intelligence integration."""
 
     def __init__(self, transaction_repo: TransactionRepository) -> None:
         self.transaction_repo = transaction_repo
@@ -78,8 +82,32 @@ class TransactionService:
         )
 
     async def create_transaction(self, payload: TransactionCreate) -> TransactionRead:
-        """Record new transaction."""
+        """Record new transaction, evaluate Rule & ML engines, and sync to graph."""
         tx_data = payload.model_dump()
+
+        # 1. Rule Engine Evaluation
+        rule_res = rule_engine.evaluate(
+            transaction=tx_data,
+            sender_account={},
+            recent_transactions=[],
+        )
+
+        # 2. ML Engine Risk Prediction
+        ml_res = ml_engine.predict_transaction_risk(tx_data)
+
+        # 3. Combine scores (Weighted average: 60% Rule Engine + 40% ML Engine)
+        computed_risk = int(round(0.6 * rule_res.total_risk_score_delta + 0.4 * ml_res.predicted_risk_score))
+        computed_risk = min(99, max(0, computed_risk))
+
+        tx_data["risk_score"] = computed_risk
+        if rule_res.flagged_patterns:
+            tx_data["flagged_pattern"] = ", ".join(rule_res.flagged_patterns)
+
+        # 4. Save to PostgreSQL (Supabase)
         tx_obj = Transaction(**tx_data)
         created = await self.transaction_repo.create(tx_obj)
+
+        # 5. Asynchronously sync to Neo4j Graph
+        await graph_builder.sync_transaction(tx_data)
+
         return TransactionRead.model_validate(created)
