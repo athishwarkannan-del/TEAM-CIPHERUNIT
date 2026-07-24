@@ -1390,3 +1390,16 @@ the Free Software Foundation, either version 3 of the License, or
 <p align="center">
   <img src="https://img.shields.io/badge/Made%20in-India-orange?style=for-the-badge&logo=flag-india" alt="Made in India" />
 </p>
+
+## 👥 Team Members
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ 👤 Venkatesan S    → Machine Learning                        │
+│ 👤 Athishwar K     → Backend                                 │
+│ 👤 Karmugilan R    → Graph Intelligence                      │
+│ 👤 Sanjay B        → Frontend                                │
+│ 👤 Siva            → UI/UX Design                            │
+│ 👤 Sakthi Prakash  → Frontend                                │
+└──────────────────────────────────────────────────────────────┘
+```
