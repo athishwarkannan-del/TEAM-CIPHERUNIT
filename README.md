@@ -17,7 +17,8 @@
   <img src="https://img.shields.io/badge/Next.js-14+-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/PostgreSQL-16+-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Netlify-Deployed-00C7B7?style=for-the-badge&logo=netlify&logoColor=white" alt="Netlify" />
+  <img src="https://img.shields.io/badge/Render-Backend-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render" />
   <img src="https://img.shields.io/badge/status-In%20Development-orange?style=for-the-badge" alt="Status" />
 </p>
 
@@ -149,7 +150,7 @@ India's digital payment ecosystem processes **over 13 billion UPI transactions m
 │  ✅  Role-based access for banks, RBI, and law enforcement      │
 │  ✅  LLM-powered investigation summaries                        │
 │  ✅  Real-time risk scoring engine                              │
-│  ✅  Production-ready, containerized deployment                 │
+│  ✅  Production-ready deployment (Netlify + Render)              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -740,12 +741,11 @@ Day 3: 28 transactions, ₹9.7L inflow
 ### Database & Infrastructure
 | Technology | Purpose | Version |
 |:---|:---|:---:|
-| **PostgreSQL** | Primary database | 16.x |
-| **Redis** | Caching & pub/sub | 7.x |
-| **Docker** | Containerization | 24.x |
-| **Docker Compose** | Multi-container orchestration | 2.x |
-| **Nginx** | Reverse proxy | 1.25+ |
-| **GitHub Actions** | CI/CD pipelines | — |
+| **PostgreSQL** | Primary database (Render managed) | 16.x |
+| **Redis** | Caching & pub/sub (Render managed) | 7.x |
+| **Netlify** | Frontend hosting, CDN, CI/CD | — |
+| **Render** | Backend hosting, managed services | — |
+| **GitHub Actions** | CI/CD pipelines, code quality | — |
 
 ---
 
@@ -762,7 +762,8 @@ TEAM-CIPHERUNIT/
 ├── 📄 SECURITY.md                        # Security policy
 ├── 📄 .gitignore                         # Git ignore rules
 ├── 📄 .env.example                       # Environment variable template
-├── 📄 docker-compose.yml                 # Docker orchestration
+├── 📄 netlify.toml                       # Netlify deployment config
+├── 📄 render.yaml                        # Render deployment blueprint
 ├── 📄 Makefile                           # Development shortcuts
 │
 ├── 📂 docs/                              # Documentation
@@ -890,8 +891,8 @@ TEAM-CIPHERUNIT/
 │   └── 📂 sql/
 │
 ├── 📂 deployment/                        # Deployment Configuration
-│   ├── 📂 docker/
-│   ├── 📂 nginx/
+│   ├── 📂 netlify/                      # Netlify config & redirects
+│   ├── 📂 render/                       # Render service config
 │   ├── 📂 scripts/
 │   └── 📂 environments/
 │
@@ -938,7 +939,7 @@ TEAM-CIPHERUNIT/
 | **Explainable AI** | SHAP analysis, LLM narrative generation | SHAP, LLM API | ML Team |
 | **Reports** | STR/CTR generation, PDF export, compliance reports | ReportLab, Jinja2 | Backend Team |
 | **Authentication** | JWT-based auth, RBAC, session management | FastAPI, JWT, bcrypt | Backend Team |
-| **Deployment** | Docker orchestration, CI/CD, environment management | Docker, GitHub Actions, Nginx | DevOps |
+| **Deployment** | Cloud hosting, CI/CD, environment management | Netlify, Render, GitHub Actions | DevOps |
 
 ---
 
@@ -950,11 +951,12 @@ TEAM-CIPHERUNIT/
 |:---|:---|:---|
 | **Node.js** | 18.x+ | [nodejs.org](https://nodejs.org) |
 | **Python** | 3.11+ | [python.org](https://python.org) |
-| **PostgreSQL** | 16.x | [postgresql.org](https://www.postgresql.org) |
-| **Docker** | 24.x+ | [docker.com](https://www.docker.com) |
+| **PostgreSQL** | 16.x | [postgresql.org](https://www.postgresql.org) or Render managed |
 | **Git** | 2.40+ | [git-scm.com](https://git-scm.com) |
+| **Netlify CLI** | Latest | `npm install -g netlify-cli` |
+| **Render Account** | — | [render.com](https://render.com) |
 
-### Quick Start (Docker)
+### Quick Start (Cloud Deployment)
 
 ```bash
 # Clone the repository
@@ -963,15 +965,41 @@ cd TEAM-CIPHERUNIT
 
 # Copy environment variables
 cp .env.example .env
+# Edit .env with your Render database URL, API keys, etc.
+```
 
-# Start all services
-docker-compose up -d
+#### Deploy Frontend to Netlify
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
 
-# Access the application
-# Frontend:  http://localhost:3000
-# Backend:   http://localhost:8000
-# API Docs:  http://localhost:8000/docs
-# Database:  localhost:5432
+# Build and deploy frontend
+cd frontend
+npm install
+npm run build
+netlify deploy --prod
+
+# Or connect your GitHub repo on https://app.netlify.com
+# Netlify auto-deploys on every push to main
+```
+
+#### Deploy Backend to Render
+```bash
+# Option 1: Connect GitHub repo at https://dashboard.render.com
+# Render auto-deploys from render.yaml blueprint
+
+# Option 2: Use Render CLI
+# Create a Web Service pointing to /backend
+# Build Command:  pip install -r requirements.txt
+# Start Command:  uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+#### Access the Application
+```
+# Frontend:  https://muletrace-ai.netlify.app  (or your custom domain)
+# Backend:   https://muletrace-api.onrender.com
+# API Docs:  https://muletrace-api.onrender.com/docs
+# Database:  Render managed PostgreSQL
 ```
 
 ### Manual Setup
