@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # PostgreSQL (Supabase / Managed / Local)
     # -------------------------------------------------------------------------
     DATABASE_URL: str | None = None
+    DIRECT_URL: str | None = None
     DATABASE_URL_SYNC: str | None = None
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
@@ -86,11 +87,13 @@ class Settings(BaseSettings):
         """
         if self.DATABASE_URL:
             url = self.DATABASE_URL
-            if url.startswith("postgresql://"):
-                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-            elif url.startswith("postgres://"):
-                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-            return url
+            # Strip query params like ?pgbouncer=true for asyncpg driver if needed
+            base_url = url.split("?")[0] if "?" in url else url
+            if base_url.startswith("postgresql://"):
+                base_url = base_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif base_url.startswith("postgres://"):
+                base_url = base_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            return base_url
 
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
@@ -101,16 +104,12 @@ class Settings(BaseSettings):
     def postgres_dsn_sync(self) -> str:
         """Build sync PostgreSQL connection string for Alembic migrations.
 
-        Supports direct DATABASE_URL_SYNC / DATABASE_URL or individual parameters.
+        Prefers DIRECT_URL (Supabase migration port 5432) or DATABASE_URL_SYNC / DATABASE_URL.
         Ensures standard postgresql:// driver prefix for Alembic.
         """
-        if self.DATABASE_URL_SYNC:
-            url = self.DATABASE_URL_SYNC
-            if url.startswith("postgres://"):
-                url = url.replace("postgres://", "postgresql://", 1)
-            return url
-        if self.DATABASE_URL:
-            url = self.DATABASE_URL
+        sync_url = self.DIRECT_URL or self.DATABASE_URL_SYNC or self.DATABASE_URL
+        if sync_url:
+            url = sync_url.split("?")[0] if "?" in sync_url else sync_url
             if url.startswith("postgresql+asyncpg://"):
                 url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
             elif url.startswith("postgres://"):
