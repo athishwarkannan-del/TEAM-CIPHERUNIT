@@ -19,6 +19,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-16+-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/Netlify-Deployed-00C7B7?style=for-the-badge&logo=netlify&logoColor=white" alt="Netlify" />
   <img src="https://img.shields.io/badge/Render-Backend-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render" />
+  <img src="https://img.shields.io/badge/Federated%20Learning-Privacy%20Preserving-purple?style=for-the-badge" alt="Federated Learning" />
   <img src="https://img.shields.io/badge/status-In%20Development-orange?style=for-the-badge" alt="Status" />
 </p>
 
@@ -27,6 +28,7 @@
   <img src="https://img.shields.io/badge/made%20with-❤️-red?style=flat-square" alt="Made with Love" />
   <img src="https://img.shields.io/badge/RBI-Compliant-darkgreen?style=flat-square" alt="RBI Compliant" />
   <img src="https://img.shields.io/badge/AML-Ready-darkred?style=flat-square" alt="AML Ready" />
+  <img src="https://img.shields.io/badge/Differential%20Privacy-%20(ε,%20δ)-blueviolet?style=flat-square" alt="Differential Privacy" />
 </p>
 
 ---
