@@ -15,6 +15,10 @@ from app.config.logging import configure_logging
 from app.config.settings import settings
 from app.database.neo4j import neo4j_manager
 from app.database.postgres import dispose_engine, init_engine
+from app.middleware.cors import setup_cors
+from app.middleware.exception_handler import register_exception_handlers
+from app.middleware.logging import LoggingMiddleware
+from app.middleware.request_id import RequestIDMiddleware
 
 
 @asynccontextmanager
@@ -41,6 +45,12 @@ app = FastAPI(
     redoc_url=f"{API_V1_PREFIX}/redoc",
     lifespan=lifespan,
 )
+
+# ── Middleware Registration ──────────────────────────────────────────────
+setup_cors(app)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
+register_exception_handlers(app)
 
 # Include master v1 API router under /api/v1
 app.include_router(api_v1_router, prefix=API_V1_PREFIX)
