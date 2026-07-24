@@ -50,9 +50,9 @@ class Neo4jManager:
         Verifies connectivity by running a test query.
         """
         logger.info(
-            "Connecting to Neo4j — uri=%s, database=%s",
+            "Connecting to Neo4j — uri=%s, user=%s",
             settings.NEO4J_URI,
-            settings.NEO4J_DATABASE,
+            settings.NEO4J_USER,
         )
 
         self._driver = AsyncGraphDatabase.driver(
@@ -71,10 +71,11 @@ class Neo4jManager:
                 server_info.agent,
                 server_info.protocol_version,
             )
-        except Exception:
+        except Exception as e:
             logger.warning(
-                "Neo4j connectivity check failed — graph features will be unavailable. "
+                "Neo4j connectivity check failed (%s) — graph features will be unavailable. "
                 "Ensure Neo4j is running at %s",
+                e,
                 settings.NEO4J_URI,
             )
 
@@ -110,13 +111,13 @@ class Neo4jManager:
 
         Yields:
             An AsyncSession bound to the configured database.
-
-        Usage:
-            async with neo4j_manager.get_session() as session:
-                result = await session.run("MATCH (n:Account) RETURN count(n)")
-                record = await result.single()
         """
-        session = self.driver.session(database=settings.NEO4J_DATABASE)
+        # For Neo4j AuraDB cloud instances, omit explicit database name to use default database
+        if "databases.neo4j.io" in settings.NEO4J_URI:
+            session = self.driver.session()
+        else:
+            session = self.driver.session(database=settings.NEO4J_DATABASE)
+
         try:
             yield session
         finally:
@@ -128,7 +129,5 @@ class Neo4jManager:
         return self._driver is not None
 
 
-# ---------------------------------------------------------------------------
 # Singleton instance — import this throughout the application.
-# ---------------------------------------------------------------------------
 neo4j_manager = Neo4jManager()

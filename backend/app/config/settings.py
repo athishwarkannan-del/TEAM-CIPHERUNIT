@@ -82,13 +82,12 @@ class Settings(BaseSettings):
     def postgres_dsn(self) -> str:
         """Build async PostgreSQL connection string for SQLAlchemy.
 
-        Supports direct DATABASE_URL (e.g. from Supabase / Neon / RDS) or
-        individual parameters. Automatically ensures +asyncpg driver prefix.
+        Prefers DIRECT_URL (port 5432 direct connection) or DATABASE_URL.
+        Ensures postgresql+asyncpg:// driver prefix.
         """
-        if self.DATABASE_URL:
-            url = self.DATABASE_URL
-            # Strip query params like ?pgbouncer=true for asyncpg driver if needed
-            base_url = url.split("?")[0] if "?" in url else url
+        raw_url = self.DIRECT_URL or self.DATABASE_URL
+        if raw_url:
+            base_url = raw_url.split("?")[0] if "?" in raw_url else raw_url
             if base_url.startswith("postgresql://"):
                 base_url = base_url.replace("postgresql://", "postgresql+asyncpg://", 1)
             elif base_url.startswith("postgres://"):
