@@ -1,0 +1,597 @@
+You are a senior full-stack software architect and engineer.
+
+Your task is to build a production-quality MVP of an AI-powered Financial Crime Investigation Platform called
+
+"MuleTrace AI"
+
+The project must follow clean architecture, modular development, SOLID principles, and enterprise coding standards.
+
+===========================================================
+PROJECT GOAL
+===========================================================
+
+Develop an end-to-end platform capable of:
+
+• Monitoring financial transactions
+• Detecting suspicious mule account behavior
+• Building relationship graphs
+• Displaying geo intelligence
+• Performing AI risk scoring
+• Supporting fraud investigation
+• Providing an AI Copilot for investigators
+
+The project should be hackathon-ready while maintaining production architecture.
+
+===========================================================
+TECH STACK
+===========================================================
+
+Frontend
+
+React 19
+TypeScript
+Vite
+Tailwind CSS
+shadcn/ui
+React Router
+TanStack Query
+Zustand
+Axios
+Socket.IO Client
+React Flow
+React Leaflet
+Chart.js
+Framer Motion
+React Hook Form
+Zod
+
+Backend
+
+NestJS
+TypeScript
+Prisma ORM
+Swagger
+Socket.IO
+Redis
+BullMQ (optional)
+
+AI Service
+
+Python
+FastAPI
+Pandas
+NumPy
+Scikit-learn
+NetworkX
+XGBoost
+SHAP
+
+Database
+
+PostgreSQL
+Neo4j
+Redis
+
+Deployment
+
+Docker
+Docker Compose
+
+===========================================================
+PROJECT STRUCTURE
+===========================================================
+
+MuleTrace-AI/
+
+│
+├── apps/
+│   │
+│   ├── frontend/
+│   │
+│   ├── backend/
+│   │
+│   └── ai-service/
+│
+├── packages/
+│   │
+│   ├── shared-types/
+│   ├── ui-components/
+│   ├── config/
+│   └── utils/
+│
+├── infrastructure/
+│   │
+│   ├── postgres/
+│   ├── neo4j/
+│   ├── redis/
+│   └── docker/
+│
+├── dataset-generator/
+│
+├── docs/
+│
+├── scripts/
+│
+├── .github/
+│
+└── README.md
+
+===========================================================
+FRONTEND STRUCTURE
+===========================================================
+
+frontend/
+
+src/
+
+app/
+
+components/
+
+layouts/
+
+pages/
+
+dashboard/
+
+live-monitor/
+
+graph/
+
+geo/
+
+investigation/
+
+copilot/
+
+reports/
+
+settings/
+
+features/
+
+api/
+
+hooks/
+
+services/
+
+store/
+
+types/
+
+utils/
+
+assets/
+
+styles/
+
+===========================================================
+BACKEND STRUCTURE
+===========================================================
+
+backend/
+
+src/
+
+modules/
+
+auth/
+
+users/
+
+transactions/
+
+accounts/
+
+alerts/
+
+graph/
+
+geo/
+
+investigation/
+
+dashboard/
+
+reports/
+
+socket/
+
+common/
+
+config/
+
+database/
+
+prisma/
+
+guards/
+
+decorators/
+
+dto/
+
+entities/
+
+===========================================================
+AI SERVICE STRUCTURE
+===========================================================
+
+ai-service/
+
+app/
+
+models/
+
+risk/
+
+graph/
+
+geo/
+
+copilot/
+
+explainability/
+
+routers/
+
+services/
+
+utils/
+
+data/
+
+===========================================================
+DATABASE DESIGN
+===========================================================
+
+PostgreSQL Tables
+
+Users
+
+Accounts
+
+Transactions
+
+Devices
+
+IPAddresses
+
+Alerts
+
+Cases
+
+Reports
+
+Neo4j Nodes
+
+Account
+
+Device
+
+Phone
+
+Email
+
+IP
+
+ATM
+
+Merchant
+
+Transaction
+
+Neo4j Relationships
+
+TRANSFERRED_TO
+
+USES_DEVICE
+
+USES_IP
+
+VISITED_ATM
+
+RELATED_TO
+
+SHARED_PHONE
+
+SHARED_EMAIL
+
+===========================================================
+PHASE 1 FEATURES
+===========================================================
+
+1. Authentication
+
+Login
+
+JWT
+
+Role Based Access
+
+Investigator
+
+Admin
+
+===========================================================
+
+2. Executive Dashboard
+
+KPIs
+
+Total Accounts
+
+Transactions Today
+
+High Risk Accounts
+
+Open Investigations
+
+Suspicious Transactions
+
+Charts
+
+===========================================================
+
+3. Live Transaction Feed
+
+Real-time updates
+
+Socket.IO
+
+Transaction stream
+
+Auto-refresh
+
+===========================================================
+
+4. Risk Scoring
+
+XGBoost
+
+Feature Engineering
+
+Explainability
+
+Risk Levels
+
+Low
+
+Medium
+
+High
+
+Critical
+
+===========================================================
+
+5. Graph Intelligence
+
+Neo4j
+
+Network visualization
+
+Connected accounts
+
+Shared devices
+
+Shared IPs
+
+Money flow
+
+Shortest path
+
+Community detection
+
+===========================================================
+
+6. Geo Intelligence
+
+Interactive map
+
+ATM locations
+
+Branches
+
+Transaction heatmap
+
+Impossible travel
+
+Distance calculation
+
+===========================================================
+
+7. Investigation Workspace
+
+Case details
+
+Evidence
+
+Timeline
+
+Related entities
+
+Notes
+
+Risk explanation
+
+===========================================================
+
+8. AI Copilot
+
+Natural language query
+
+Uses local Ollama
+
+Qwen2.5
+
+Functions
+
+Explain fraud
+
+Summarize investigation
+
+Find suspicious accounts
+
+Generate reports
+
+===========================================================
+API MODULES
+===========================================================
+
+/auth
+
+/accounts
+
+/transactions
+
+/alerts
+
+/dashboard
+
+/investigation
+
+/graph
+
+/geo
+
+/reports
+
+/copilot
+
+===========================================================
+AI MODULES
+===========================================================
+
+Risk Engine
+
+Graph Analytics
+
+Geo Analytics
+
+Feature Engineering
+
+Explainability
+
+Prompt Templates
+
+===========================================================
+DATASET GENERATOR
+===========================================================
+
+Generate
+
+5000 Accounts
+
+50000 Transactions
+
+2000 Devices
+
+500 IPs
+
+200 ATMs
+
+Fraud Rings
+
+Shared Devices
+
+Circular Transactions
+
+Velocity Fraud
+
+Geo Fraud
+
+Output
+
+CSV
+
+SQL Seed
+
+Neo4j Seed
+
+===========================================================
+CODING RULES
+===========================================================
+
+Use TypeScript everywhere except AI.
+
+Strict typing.
+
+Reusable components.
+
+Feature-based architecture.
+
+Repository pattern.
+
+Dependency injection.
+
+Environment variables.
+
+Docker support.
+
+Swagger documentation.
+
+Error handling.
+
+Logging.
+
+Validation.
+
+Pagination.
+
+Filtering.
+
+Sorting.
+
+Unit testing.
+
+===========================================================
+UI MODULES
+===========================================================
+
+Dashboard
+
+Live Monitoring
+
+Graph Intelligence
+
+Geo Intelligence
+
+Investigation
+
+Reports
+
+Settings
+
+===========================================================
+DELIVERABLES
+===========================================================
+
+Generate code incrementally.
+
+Do NOT generate the entire project at once.
+
+Proceed module by module.
+
+For every module provide:
+
+Folder structure
+
+Files
+
+Implementation
+
+API
+
+Types
+
+Validation
+
+Testing
+
+Finally connect all modules together.
+
+Never skip architecture.
+
+Always follow enterprise best practices.
