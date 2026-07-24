@@ -1,0 +1,54 @@
+{
+  "dataset_total_records": 500,
+  "fraud_classification": {
+    "weights": [
+      1.4183796834949034,
+      0.7910834134323953,
+      0.68410865296054,
+      0.8073005167524658,
+      0.7827169917487325,
+      0.5985698476928296,
+      0.8927866386110905,
+      0.9015998453596263
+    ],
+    "bias": -2.344556779278746,
+    "metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "confusion_matrix": {
+        "TP": 51,
+        "FP": 0,
+        "TN": 49,
+        "FN": 0
+      }
+    }
+  },
+  "risk_regression": {
+    "weights": [
+      25.0,
+      30.0,
+      20.0,
+      15.0,
+      10.0,
+      10.0,
+      12.0,
+      8.0
+    ],
+    "bias": 5.0,
+    "metrics": {
+      "MAE": 9.3576,
+      "R2_Score": 0.9124
+    }
+  },
+  "sample_bank_distribution": {
+    "State Bank of India": 142,
+    "HDFC Bank": 98,
+    "ICICI Bank": 84,
+    "Axis Bank": 66,
+    "YES Bank": 45,
+    "Kotak Mahindra Bank": 38,
+    "Canara Bank": 27
+  }
+}

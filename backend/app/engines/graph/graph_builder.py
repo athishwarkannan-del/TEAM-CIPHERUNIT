@@ -26,7 +26,9 @@ class GraphBuilder:
 
         cypher = """
         MERGE (s:Account {account_number: $sender_acc})
+        SET s.bank_name = $sender_bank, s.customer_name = $sender_name
         MERGE (r:Account {account_number: $receiver_acc})
+        SET r.bank_name = $receiver_bank, r.customer_name = $receiver_name
         CREATE (s)-[t:TRANSFERRED_FUNDS {
             ref: $tx_ref,
             amount: $amount,
@@ -37,10 +39,14 @@ class GraphBuilder:
 
         params = {
             "sender_acc": str(transaction.get("sender_account_number", "UNKNOWN")),
-            "receiver_acc": str(transaction.get("receiver_account_number", "UNKNOWN")),
-            "tx_ref": str(transaction.get("transaction_ref", "")),
+            "sender_bank": str(transaction.get("sender_bank", transaction.get("bank_name", "State Bank of India"))),
+            "sender_name": str(transaction.get("sender_name", transaction.get("name", "Account Holder"))),
+            "receiver_acc": str(transaction.get("receiver_account_number", transaction.get("receiver_account", "UNKNOWN"))),
+            "receiver_bank": str(transaction.get("receiver_bank", "HDFC Bank")),
+            "receiver_name": str(transaction.get("receiver_name", "Beneficiary Holder")),
+            "tx_ref": str(transaction.get("transaction_ref", transaction.get("txn_id", ""))),
             "amount": float(transaction.get("amount", 0.0)),
-            "channel": str(transaction.get("channel", "UPI")),
+            "channel": str(transaction.get("channel", transaction.get("trans_type", "UPI"))),
             "timestamp": str(transaction.get("timestamp", "")),
         }
 

@@ -151,312 +151,952 @@ export const mockAnalytics: AnalyticsOverviewResponse = {
 // -----------------------------------------------------------------------------
 export const mockGraph: GraphResponse = {
   nodes: [
-    // Critical Risk Accounts (90-100) — Red Glow
-    {
-      id: "acc-101",
-      label: "XXXX1001 — R. Sharma",
-      type: "account",
-      risk_score: 96,
-      account_number: "XXXX1001",
-      customer_name: "Rajesh Kumar Sharma",
-      bank: "State Bank of India",
-      phone: "+91 98765 11001",
-      device: "Samsung Galaxy S23",
-      ip: "103.21.140.88",
-      location: "Mumbai, MH",
-      last_transaction: "₹49,000 via UPI (12m ago)",
-      total_received: 4850000,
-      total_sent: 4790000,
-      is_mule: true,
-      community_id: "COMMUNITY-A12",
-    },
-    {
-      id: "acc-102",
-      label: "XXXX1002 — P. Nair (Mule Hub)",
-      type: "account",
-      risk_score: 93,
-      account_number: "XXXX1002",
-      customer_name: "Priya Venkatesh Nair",
-      bank: "HDFC Bank",
-      phone: "+91 98765 22002",
-      device: "iPhone 15 Pro",
-      ip: "104.22.155.12",
-      location: "Mumbai, MH",
-      last_transaction: "₹88,000 via UPI (25m ago)",
-      total_received: 8900000,
-      total_sent: 8850000,
-      is_mule: true,
-      community_id: "COMMUNITY-A12",
-    },
-    {
-      id: "acc-103",
-      label: "XXXX1003 — M. Ali",
-      type: "account",
-      risk_score: 87,
-      account_number: "XXXX1003",
-      customer_name: "Mohammed Irfan Ali",
-      bank: "ICICI Bank",
-      phone: "+91 98765 33003",
-      device: "OnePlus 11",
-      ip: "103.21.140.88",
-      location: "Delhi, DL",
-      last_transaction: "₹47,800 via IMPS (45m ago)",
-      total_received: 1250000,
-      total_sent: 1240000,
-      is_mule: true,
-      community_id: "COMMUNITY-A12",
-    },
-    {
-      id: "acc-110",
-      label: "XXXX1010 — A. Krishnamurthy",
-      type: "account",
-      risk_score: 91,
-      account_number: "XXXX1010",
-      customer_name: "Anitha Krishnamurthy",
-      bank: "Axis Bank",
-      phone: "+91 98765 00010",
-      device: "Xiaomi 13 Pro",
-      ip: "104.22.155.12",
-      location: "Bengaluru, KA",
-      last_transaction: "₹88,000 via UPI (18m ago)",
-      total_received: 3400000,
-      total_sent: 3380000,
-      is_mule: true,
-      community_id: "COMMUNITY-A12",
-    },
-
-    // High & Medium Risk Accounts (45-89) — Orange/Amber Glow
-    {
-      id: "acc-104",
-      label: "XXXX1004 — D. Subramaniam",
-      type: "account",
-      risk_score: 82,
-      account_number: "XXXX1004",
-      customer_name: "Deepa Subramaniam",
-      bank: "Kotak Mahindra Bank",
-      phone: "+91 98765 44004",
-      device: "Samsung Galaxy S23",
-      ip: "103.21.140.90",
-      location: "Chennai, TN",
-      last_transaction: "₹35,000 via UPI (1h ago)",
-      total_received: 980000,
-      total_sent: 950000,
-      is_mule: false,
-      community_id: "COMMUNITY-A12",
-    },
-    {
-      id: "acc-105",
-      label: "XXXX1005 — A. Joshi",
-      type: "account",
-      risk_score: 71,
-      account_number: "XXXX1005",
-      customer_name: "Arun Prakash Joshi",
-      bank: "Punjab National Bank",
-      phone: "+91 98765 55005",
-      device: "Realme GT 3",
-      ip: "103.21.140.91",
-      location: "Pune, MH",
-      last_transaction: "₹28,000 via IMPS (2h ago)",
-      total_received: 450000,
-      total_sent: 440000,
-      is_mule: false,
-      community_id: "COMMUNITY-B04",
-    },
-    {
-      id: "acc-106",
-      label: "XXXX1006 — K. Reddy",
-      type: "account",
-      risk_score: 65,
-      account_number: "XXXX1006",
-      customer_name: "Kavitha Reddy Pillai",
-      bank: "Canara Bank",
-      phone: "+91 98765 66006",
-      device: "Vivo X90",
-      ip: "103.21.140.92",
-      location: "Hyderabad, TS",
-      last_transaction: "₹52,000 via NEFT (3h ago)",
-      total_received: 620000,
-      total_sent: 610000,
-      is_mule: false,
-      community_id: "COMMUNITY-B04",
-    },
-    {
-      id: "acc-109",
-      label: "XXXX1009 — V. Chauhan",
-      type: "account",
-      risk_score: 62,
-      account_number: "XXXX1009",
-      customer_name: "Vikram Singh Chauhan",
-      bank: "Bank of Baroda",
-      phone: "+91 98765 99009",
-      device: "iQOO 11",
-      ip: "104.22.155.12",
-      location: "Jaipur, RJ",
-      last_transaction: "₹52,000 via NEFT (3h ago)",
-      total_received: 890000,
-      total_sent: 870000,
-      is_mule: false,
-      community_id: "COMMUNITY-B04",
-    },
-
-    // Victim (Blue)
-    {
-      id: "vic-701",
-      label: "Smt. Sunita Rao (Victim)",
-      type: "victim",
-      risk_score: 10,
-      account_number: "XXXX7001",
-      customer_name: "Sunita Rao",
-      bank: "Union Bank of India",
-      phone: "+91 98765 77001",
-      device: "Redmi Note 12",
-      ip: "49.207.54.12",
-      location: "Nagpur, MH",
-      last_transaction: "₹1,50,000 (Phishing Fraud Victim)",
-      total_received: 50000,
-      total_sent: 150000,
-      is_mule: false,
-      community_id: "COMMUNITY-A12",
-    },
-
-    // Devices (Purple)
-    {
-      id: "dev-501",
-      label: "Samsung Galaxy S23 Ultra",
-      type: "device",
-      risk_score: 85,
-      device: "Samsung S23 Ultra (IMEI: 359128...)",
-      location: "Mumbai, MH",
-      community_id: "COMMUNITY-A12",
-    },
-
-    // Phone (Green)
-    {
-      id: "phn-801",
-      label: "+91 98765 00000 (Shared)",
-      type: "phone",
-      risk_score: 78,
-      phone: "+91 98765 00000",
-      location: "Delhi, DL",
-      community_id: "COMMUNITY-A12",
-    },
-
-    // IP Address (Yellow)
-    {
-      id: "ip-601",
-      label: "103.21.140.88 (Proxy IP)",
-      type: "ip",
-      risk_score: 82,
-      ip: "103.21.140.88",
-      location: "VPN Gateway — Mumbai",
-      community_id: "COMMUNITY-A12",
-    },
-
-    // ATM (White)
-    {
-      id: "atm-901",
-      label: "ATM Andheri West",
-      type: "atm",
-      risk_score: 65,
-      location: "Andheri West, Mumbai",
-      community_id: "COMMUNITY-A12",
-    },
-
-    // Crypto Wallet (Pink)
-    {
-      id: "crp-301",
-      label: "0x71C...39F (USDT Wallet)",
-      type: "crypto",
-      risk_score: 95,
-      account_number: "0x71C8a9f...39F",
-      bank: "TRON / TRC-20 USDT",
-      total_received: 12500000,
-      total_sent: 12450000,
-      is_mule: true,
-      community_id: "COMMUNITY-A12",
-    },
-
-    // Merchant (Gray)
-    {
-      id: "mch-401",
-      label: "FastPay Online Retail",
-      type: "merchant",
-      risk_score: 20,
-      customer_name: "FastPay Payment Gateway",
-      bank: "Razorpay Merchant",
-      location: "Bengaluru, KA",
-      community_id: "COMMUNITY-[#C4]",
-    },
-
-    // Clean Original Accounts (Green)
-    {
-      id: "acc-108",
-      label: "XXXX1008 — L. Gupta",
-      type: "account",
-      risk_score: 18,
-      account_number: "XXXX1008",
-      customer_name: "Lakshmi Devi Gupta",
-      bank: "State Bank of India",
-      phone: "+91 98765 88008",
-      location: "Lucknow, UP",
-      last_transaction: "₹15,000 via UPI (5h ago)",
-      total_received: 240000,
-      total_sent: 180000,
-      is_mule: false,
-      community_id: "COMMUNITY-C01",
-    },
-    {
-      id: "acc-111",
-      label: "XXXX1011 — R. Mehta",
-      type: "account",
-      risk_score: 15,
-      account_number: "XXXX1011",
-      customer_name: "Rahul Mehta",
-      bank: "HDFC Bank",
-      phone: "+91 98765 11011",
-      location: "Ahmedabad, GJ",
-      last_transaction: "₹12,000 via NEFT (6h ago)",
-      total_received: 310000,
-      total_sent: 290000,
-      is_mule: false,
-      community_id: "COMMUNITY-C01",
-    },
-  ],
+  {
+    "id": "acc-SB6200630",
+    "label": "SB6200630 \u2014 Deepa Krishnan",
+    "type": "account",
+    "risk_score": 18,
+    "account_number": "SB6200630",
+    "customer_name": "Deepa Krishnan",
+    "bank": "State Bank of India",
+    "phone": "+91 9566163810",
+    "device": "Oppo A78",
+    "ip": "199.43.199.225",
+    "location": "Pincode 641001",
+    "last_transaction": "\u20b91,517.46 via IMPS",
+    "total_received": 1821,
+    "total_sent": 1517,
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "acc-SB12127354",
+    "label": "SB12127354 \u2014 Deepa Krishnan",
+    "type": "account",
+    "risk_score": 18,
+    "account_number": "SB12127354",
+    "customer_name": "Deepa Krishnan",
+    "bank": "State Bank of India",
+    "location": "Pincode 641001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "dev-7018",
+    "label": "Oppo A78",
+    "type": "device",
+    "risk_score": 19,
+    "device": "Oppo A78",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-199_43_199_225",
+    "label": "199.43.199.225 (Network)",
+    "type": "ip",
+    "risk_score": 17,
+    "ip": "199.43.199.225",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB00009100",
+    "label": "SB00009100 \u2014 Sanjay",
+    "type": "account",
+    "risk_score": 90,
+    "account_number": "SB00009100",
+    "customer_name": "Sanjay",
+    "bank": "State Bank of India",
+    "phone": "+91 9786579303",
+    "device": "iPhone 14",
+    "ip": "130.247.90.178",
+    "location": "Pincode 560001",
+    "last_transaction": "\u20b944,794.35 via UPI",
+    "total_received": 53753,
+    "total_sent": 44794,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-YS00056296",
+    "label": "YS00056296 \u2014 Mukesh Joshi",
+    "type": "account",
+    "risk_score": 72,
+    "account_number": "YS00056296",
+    "customer_name": "Mukesh Joshi",
+    "bank": "YES Bank",
+    "location": "Pincode 302001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-2866",
+    "label": "iPhone 14",
+    "type": "device",
+    "risk_score": 74,
+    "device": "iPhone 14",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-130_247_90_178",
+    "label": "130.247.90.178 (Network)",
+    "type": "ip",
+    "risk_score": 65,
+    "ip": "130.247.90.178",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB00009199",
+    "label": "SB00009199 \u2014 Sakthi Prakash",
+    "type": "account",
+    "risk_score": 91,
+    "account_number": "SB00009199",
+    "customer_name": "Sakthi Prakash",
+    "bank": "State Bank of India",
+    "phone": "+91 9797801251",
+    "device": "iPhone 14",
+    "ip": "103.42.240.225",
+    "location": "Pincode 600001",
+    "last_transaction": "\u20b944,532.52 via UPI",
+    "total_received": 53439,
+    "total_sent": 44533,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB41222178",
+    "label": "SB41222178 \u2014 Rakesh Agarwal",
+    "type": "account",
+    "risk_score": 73,
+    "account_number": "SB41222178",
+    "customer_name": "Rakesh Agarwal",
+    "bank": "State Bank of India",
+    "location": "Pincode 380001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-103_42_240_225",
+    "label": "103.42.240.225 (Network)",
+    "type": "ip",
+    "risk_score": 85,
+    "ip": "103.42.240.225",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB00009834",
+    "label": "SB00009834 \u2014 Yogesh Nair",
+    "type": "account",
+    "risk_score": 85,
+    "account_number": "SB00009834",
+    "customer_name": "Yogesh Nair",
+    "bank": "State Bank of India",
+    "phone": "+91 9133729406",
+    "device": "Xiaomi Redmi Note 13",
+    "ip": "151.121.142.172",
+    "location": "Pincode 462001",
+    "last_transaction": "\u20b944,228.82 via NEFT",
+    "total_received": 53075,
+    "total_sent": 44229,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-YS00071678",
+    "label": "YS00071678 \u2014 Ramesh Babu",
+    "type": "account",
+    "risk_score": 68,
+    "account_number": "YS00071678",
+    "customer_name": "Ramesh Babu",
+    "bank": "YES Bank",
+    "location": "Pincode 530001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-9493",
+    "label": "Xiaomi Redmi Note 13",
+    "type": "device",
+    "risk_score": 65,
+    "device": "Xiaomi Redmi Note 13",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-151_121_142_172",
+    "label": "151.121.142.172 (Network)",
+    "type": "ip",
+    "risk_score": 69,
+    "ip": "151.121.142.172",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB3629445",
+    "label": "SB3629445 \u2014 Arjun Sharma",
+    "type": "account",
+    "risk_score": 7,
+    "account_number": "SB3629445",
+    "customer_name": "Arjun Sharma",
+    "bank": "State Bank of India",
+    "phone": "+91 9460065542",
+    "device": "Samsung Galaxy A54",
+    "ip": "208.37.161.229",
+    "location": "Pincode 462001",
+    "last_transaction": "\u20b92,278.25 via NEFT",
+    "total_received": 2734,
+    "total_sent": 2278,
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "acc-SB68166960",
+    "label": "SB68166960 \u2014 Deepa Krishnan",
+    "type": "account",
+    "risk_score": 7,
+    "account_number": "SB68166960",
+    "customer_name": "Deepa Krishnan",
+    "bank": "State Bank of India",
+    "location": "Pincode 462001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "dev-7622",
+    "label": "Samsung Galaxy A54",
+    "type": "device",
+    "risk_score": 12,
+    "device": "Samsung Galaxy A54",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-208_37_161_229",
+    "label": "208.37.161.229 (Network)",
+    "type": "ip",
+    "risk_score": 9,
+    "ip": "208.37.161.229",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-AX00035760",
+    "label": "AX00035760 \u2014 Amit Khanna",
+    "type": "account",
+    "risk_score": 89,
+    "account_number": "AX00035760",
+    "customer_name": "Amit Khanna",
+    "bank": "Axis Bank",
+    "phone": "+91 9242224154",
+    "device": "Xiaomi Mi 11X",
+    "ip": "82.189.145.41",
+    "location": "Pincode 641001",
+    "last_transaction": "\u20b947,290.44 via UPI",
+    "total_received": 56749,
+    "total_sent": 47290,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-6259",
+    "label": "Xiaomi Mi 11X",
+    "type": "device",
+    "risk_score": 89,
+    "device": "Xiaomi Mi 11X",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-82_189_145_41",
+    "label": "82.189.145.41 (Network)",
+    "type": "ip",
+    "risk_score": 66,
+    "ip": "82.189.145.41",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-3327",
+    "label": "MacBook Pro",
+    "type": "device",
+    "risk_score": 90,
+    "device": "MacBook Pro",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-141_124_242_207",
+    "label": "141.124.242.207 (Network)",
+    "type": "ip",
+    "risk_score": 70,
+    "ip": "141.124.242.207",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB3373320",
+    "label": "SB3373320 \u2014 Arjun Sharma",
+    "type": "account",
+    "risk_score": 12,
+    "account_number": "SB3373320",
+    "customer_name": "Arjun Sharma",
+    "bank": "State Bank of India",
+    "phone": "+91 9592539893",
+    "device": "iPhone 13",
+    "ip": "20.75.102.227",
+    "location": "Pincode 226001",
+    "last_transaction": "\u20b9843.40 via NEFT",
+    "total_received": 1012,
+    "total_sent": 843,
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "acc-SB50437430",
+    "label": "SB50437430 \u2014 Arjun Sharma",
+    "type": "account",
+    "risk_score": 12,
+    "account_number": "SB50437430",
+    "customer_name": "Arjun Sharma",
+    "bank": "State Bank of India",
+    "location": "Pincode 226001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "dev-3197",
+    "label": "iPhone 13",
+    "type": "device",
+    "risk_score": 22,
+    "device": "iPhone 13",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-20_75_102_227",
+    "label": "20.75.102.227 (Network)",
+    "type": "ip",
+    "risk_score": 10,
+    "ip": "20.75.102.227",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-YS00037463",
+    "label": "YS00037463 \u2014 Sandeep Jain",
+    "type": "account",
+    "risk_score": 94,
+    "account_number": "YS00037463",
+    "customer_name": "Sandeep Jain",
+    "bank": "YES Bank",
+    "phone": "+91 9969119330",
+    "device": "iPhone 13",
+    "ip": "212.251.52.224",
+    "location": "Pincode 400001",
+    "last_transaction": "\u20b944,268.54 via NEFT",
+    "total_received": 53122,
+    "total_sent": 44269,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-212_251_52_224",
+    "label": "212.251.52.224 (Network)",
+    "type": "ip",
+    "risk_score": 65,
+    "ip": "212.251.52.224",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB00053581",
+    "label": "SB00053581 \u2014 Umesh Chandra",
+    "type": "account",
+    "risk_score": 90,
+    "account_number": "SB00053581",
+    "customer_name": "Umesh Chandra",
+    "bank": "State Bank of India",
+    "phone": "+91 9387484583",
+    "device": "OnePlus 12",
+    "ip": "53.221.28.213",
+    "location": "Pincode 560001",
+    "last_transaction": "\u20b946,032.64 via NEFT",
+    "total_received": 55239,
+    "total_sent": 46033,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-YS00085259",
+    "label": "YS00085259 \u2014 Kailash Borah",
+    "type": "account",
+    "risk_score": 72,
+    "account_number": "YS00085259",
+    "customer_name": "Kailash Borah",
+    "bank": "YES Bank",
+    "location": "Pincode 500001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-1390",
+    "label": "OnePlus 12",
+    "type": "device",
+    "risk_score": 69,
+    "device": "OnePlus 12",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-53_221_28_213",
+    "label": "53.221.28.213 (Network)",
+    "type": "ip",
+    "risk_score": 82,
+    "ip": "53.221.28.213",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB4153336",
+    "label": "SB4153336 \u2014 Rekha Singh",
+    "type": "account",
+    "risk_score": 12,
+    "account_number": "SB4153336",
+    "customer_name": "Rekha Singh",
+    "bank": "State Bank of India",
+    "phone": "+91 9398326747",
+    "device": "iPhone 15",
+    "ip": "98.52.75.119",
+    "location": "Pincode 682001",
+    "last_transaction": "\u20b9837.70 via NEFT",
+    "total_received": 1005,
+    "total_sent": 838,
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "acc-SB24790683",
+    "label": "SB24790683 \u2014 Priya Nair",
+    "type": "account",
+    "risk_score": 12,
+    "account_number": "SB24790683",
+    "customer_name": "Priya Nair",
+    "bank": "State Bank of India",
+    "location": "Pincode 682001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "dev-2955",
+    "label": "iPhone 15",
+    "type": "device",
+    "risk_score": 24,
+    "device": "iPhone 15",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-98_52_75_119",
+    "label": "98.52.75.119 (Network)",
+    "type": "ip",
+    "risk_score": 7,
+    "ip": "98.52.75.119",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-SB7005668",
+    "label": "SB7005668 \u2014 Deepa Krishnan",
+    "type": "account",
+    "risk_score": 20,
+    "account_number": "SB7005668",
+    "customer_name": "Deepa Krishnan",
+    "bank": "State Bank of India",
+    "phone": "+91 9290252696",
+    "device": "OnePlus 12",
+    "ip": "51.236.189.240",
+    "location": "Pincode 682001",
+    "last_transaction": "\u20b94,919.30 via IMPS",
+    "total_received": 5903,
+    "total_sent": 4919,
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "acc-SB69670203",
+    "label": "SB69670203 \u2014 Rekha Singh",
+    "type": "account",
+    "risk_score": 20,
+    "account_number": "SB69670203",
+    "customer_name": "Rekha Singh",
+    "bank": "State Bank of India",
+    "location": "Pincode 682001",
+    "is_mule": false,
+    "community_id": "COMMUNITY-B04"
+  },
+  {
+    "id": "ip-51_236_189_240",
+    "label": "51.236.189.240 (Network)",
+    "type": "ip",
+    "risk_score": 20,
+    "ip": "51.236.189.240",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-YS00022643",
+    "label": "YS00022643 \u2014 Puneet Arora",
+    "type": "account",
+    "risk_score": 93,
+    "account_number": "YS00022643",
+    "customer_name": "Puneet Arora",
+    "bank": "YES Bank",
+    "phone": "+91 9384602384",
+    "device": "Windows 11 PC",
+    "ip": "20.192.157.27",
+    "location": "Pincode 800001",
+    "last_transaction": "\u20b947,195.12 via UPI",
+    "total_received": 56634,
+    "total_sent": 47195,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "dev-9932",
+    "label": "Windows 11 PC",
+    "type": "device",
+    "risk_score": 91,
+    "device": "Windows 11 PC",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "ip-20_192_157_27",
+    "label": "20.192.157.27 (Network)",
+    "type": "ip",
+    "risk_score": 76,
+    "ip": "20.192.157.27",
+    "community_id": "COMMUNITY-A12"
+  },
+  {
+    "id": "acc-ID00070352",
+    "label": "ID00070352 \u2014 Nirav Modi",
+    "type": "account",
+    "risk_score": 75,
+    "account_number": "ID00070352",
+    "customer_name": "Nirav Modi",
+    "bank": "IDFC FIRST Bank",
+    "phone": "+91 9369953851",
+    "device": "Samsung Galaxy A54",
+    "ip": "158.30.17.215",
+    "location": "Pincode 160001",
+    "last_transaction": "\u20b944,998.67 via NEFT",
+    "total_received": 53998,
+    "total_sent": 44999,
+    "is_mule": true,
+    "community_id": "COMMUNITY-A12"
+  }
+],
   edges: [
-    // Victim → Mule Hub
-    { source: "vic-701", target: "acc-101", relationship: "TRANSFERRED_FUNDS", amount: 150000, channel: "IMPS", timestamp: "10m ago" },
-
-    // Mule Chain Transfers (Red)
-    { source: "acc-101", target: "acc-102", relationship: "TRANSFERRED_FUNDS", amount: 49000, channel: "UPI", timestamp: "12m ago" },
-    { source: "acc-102", target: "acc-103", relationship: "TRANSFERRED_FUNDS", amount: 48500, channel: "UPI", timestamp: "15m ago" },
-    { source: "acc-103", target: "acc-104", relationship: "TRANSFERRED_FUNDS", amount: 47800, channel: "IMPS", timestamp: "22m ago" },
-    { source: "acc-110", target: "acc-102", relationship: "TRANSFERRED_FUNDS", amount: 88000, channel: "UPI", timestamp: "18m ago" },
-    { source: "acc-102", target: "crp-301", relationship: "TRANSFERRED_FUNDS", amount: 250000, channel: "CRYPTO_CASHOUT", timestamp: "30m ago" },
-
-    // Shared Links
-    { source: "acc-101", target: "dev-501", relationship: "SHARED_DEVICE" },
-    { source: "acc-104", target: "dev-501", relationship: "SHARED_DEVICE" },
-    { source: "acc-101", target: "ip-601", relationship: "SHARED_IP" },
-    { source: "acc-103", target: "ip-601", relationship: "SHARED_IP" },
-    { source: "acc-102", target: "phn-801", relationship: "SHARED_PHONE" },
-    { source: "acc-110", target: "phn-801", relationship: "SHARED_PHONE" },
-
-    // Medium Risk Transfers (Orange/Amber)
-    { source: "acc-104", target: "acc-105", relationship: "TRANSFERRED_FUNDS", amount: 35000, channel: "UPI", timestamp: "1h ago" },
-    { source: "acc-106", target: "acc-109", relationship: "TRANSFERRED_FUNDS", amount: 52000, channel: "NEFT", timestamp: "3h ago" },
-    { source: "acc-105", target: "acc-107", relationship: "TRANSFERRED_FUNDS", amount: 28000, channel: "IMPS", timestamp: "2h ago" },
-    { source: "acc-105", target: "atm-901", relationship: "WITHDREW_FUNDS", amount: 40000, channel: "ATM_CASH", timestamp: "4h ago" },
-
-    // Clean Transactions (Green)
-    { source: "acc-111", target: "acc-108", relationship: "TRANSFERRED_FUNDS", amount: 15000, channel: "UPI", timestamp: "5h ago" },
-    { source: "acc-108", target: "mch-401", relationship: "TRANSFERRED_FUNDS", amount: 3200, channel: "UPI_MERCHANT", timestamp: "6h ago" },
-  ],
+  {
+    "source": "acc-SB6200630",
+    "target": "acc-SB12127354",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 1517,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 15:20:38"
+  },
+  {
+    "source": "acc-SB00009100",
+    "target": "acc-YS00056296",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44794,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 11:06:41"
+  },
+  {
+    "source": "acc-SB00009100",
+    "target": "dev-2866",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB41222178",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44533,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 10:40:36"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "ip-103_42_240_225",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB00009834",
+    "target": "acc-YS00071678",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44229,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 10:49:27"
+  },
+  {
+    "source": "acc-SB00009834",
+    "target": "ip-151_121_142_172",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB3629445",
+    "target": "acc-SB68166960",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 2278,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 14:45:10"
+  },
+  {
+    "source": "acc-AX00035760",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 47290,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 11:56:39"
+  },
+  {
+    "source": "acc-AX00035760",
+    "target": "dev-6259",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-YS00071678",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 49885,
+    "channel": "RTGS",
+    "timestamp": "2025-07-01 10:54:41"
+  },
+  {
+    "source": "acc-YS00071678",
+    "target": "dev-3327",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB3373320",
+    "target": "acc-SB50437430",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 843,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 15:00:09"
+  },
+  {
+    "source": "acc-YS00037463",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44269,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 09:16:52"
+  },
+  {
+    "source": "acc-SB00053581",
+    "target": "acc-YS00085259",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 46033,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 09:49:32"
+  },
+  {
+    "source": "acc-SB4153336",
+    "target": "acc-SB24790683",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 838,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 14:23:37"
+  },
+  {
+    "source": "acc-SB7005668",
+    "target": "acc-SB69670203",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 4919,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 13:23:42"
+  },
+  {
+    "source": "acc-YS00022643",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 47195,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 10:34:48"
+  },
+  {
+    "source": "acc-YS00022643",
+    "target": "ip-20_192_157_27",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "acc-PN00039469",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44999,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 10:09:38"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "dev-7622",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "ip-158_30_17_215",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB7572195",
+    "target": "acc-SB87666600",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 531,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 13:12:02"
+  },
+  {
+    "source": "acc-SB7786479",
+    "target": "acc-SB48108152",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 204,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 13:16:54"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "acc-SB45884163",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 46046,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 12:32:46"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "dev-9493",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-ID00070352",
+    "target": "ip-103_27_145_232",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB4181393",
+    "target": "acc-SB62968985",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 3657,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 13:39:35"
+  },
+  {
+    "source": "acc-SB7777424",
+    "target": "acc-SB10447935",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 1446,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 15:08:12"
+  },
+  {
+    "source": "acc-CN00007630",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 48406,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 11:15:46"
+  },
+  {
+    "source": "acc-CN00007630",
+    "target": "dev-6115",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB47207440",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44165,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 12:38:27"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "dev-9493",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "ip-103_27_145_232",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-YS00037463",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 48698,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 09:12:39"
+  },
+  {
+    "source": "acc-YS00037463",
+    "target": "ip-198_216_174_72",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB5314727",
+    "target": "acc-SB30700047",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 2718,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 13:21:13"
+  },
+  {
+    "source": "acc-SB3718341",
+    "target": "acc-SB30980122",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 3460,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 13:13:32"
+  },
+  {
+    "source": "acc-SB2305411",
+    "target": "acc-SB90142849",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 160,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 14:05:59"
+  },
+  {
+    "source": "acc-YS00056296",
+    "target": "acc-CN00007630",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 46250,
+    "channel": "RTGS",
+    "timestamp": "2025-07-01 11:13:11"
+  },
+  {
+    "source": "acc-YS00056296",
+    "target": "dev-3513",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB67985905",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 47528,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 09:19:12"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "dev-7018",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB3140306",
+    "target": "acc-SB45885781",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 2578,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 13:51:55"
+  },
+  {
+    "source": "acc-SB2260713",
+    "target": "acc-SB24030412",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 85,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 14:22:54"
+  },
+  {
+    "source": "acc-SB4783105",
+    "target": "acc-SB86178952",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 3768,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 13:31:59"
+  },
+  {
+    "source": "acc-CN00008455",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 44651,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 11:36:50"
+  },
+  {
+    "source": "acc-CN00008455",
+    "target": "ip-145_96_164_5",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB5483468",
+    "target": "acc-SB89964091",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 2097,
+    "channel": "NEFT",
+    "timestamp": "2025-07-01 15:04:06"
+  },
+  {
+    "source": "acc-SB9413034",
+    "target": "acc-SB15938855",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 3763,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 15:01:45"
+  },
+  {
+    "source": "acc-YS00037463",
+    "target": "acc-SB00009199",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 46076,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 09:15:57"
+  },
+  {
+    "source": "acc-YS00037463",
+    "target": "ip-198_216_174_72",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB11243818",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 49173,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 10:00:02"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "dev-1478",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "ip-103_42_240_225",
+    "relationship": "SHARED_IP"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB36809908",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 45172,
+    "channel": "RTGS",
+    "timestamp": "2025-07-01 10:59:41"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "dev-2955",
+    "relationship": "SHARED_DEVICE"
+  },
+  {
+    "source": "acc-SB1577888",
+    "target": "acc-SB69590884",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 2221,
+    "channel": "UPI",
+    "timestamp": "2025-07-01 13:35:40"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "acc-SB67881875",
+    "relationship": "TRANSFERRED_FUNDS",
+    "amount": 47190,
+    "channel": "IMPS",
+    "timestamp": "2025-07-01 12:22:06"
+  },
+  {
+    "source": "acc-SB00009199",
+    "target": "dev-2955",
+    "relationship": "SHARED_DEVICE"
+  }
+],
   community_id: "COMMUNITY-A12",
 };
 
-// -----------------------------------------------------------------------------
-// Geo Intelligence
-// -----------------------------------------------------------------------------
 export const mockGeo: GeoIntelligenceResponse = {
   impossible_travel_alerts: [
     { account_number: "XXXX1003", origin: "Mumbai", destination: "Delhi", distance_km: 1400, time_gap_minutes: 15, flagged: true },
