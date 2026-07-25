@@ -13,6 +13,9 @@ Exports:
     get_neo4j_session — FastAPI dependency for Neo4j sessions
 """
 
+from __future__ import annotations
+
+
 from app.database.base import Base, TimestampMixin
 from app.database.neo4j import neo4j_manager
 from app.database.postgres import dispose_engine, init_engine

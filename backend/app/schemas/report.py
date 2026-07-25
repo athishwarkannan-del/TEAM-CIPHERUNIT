@@ -4,6 +4,10 @@ MuleTrace AI — Report Schemas.
 Pydantic schemas for STR / CTR compliance report generation and retrieval.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,9 +18,9 @@ class ReportGenerateRequest(BaseModel):
 
     report_type: str = Field(..., description="STR, CTR, CYBERCRIME_SUMMARY, EXECUTIVE_BRIEF")
     title: str = Field(..., max_length=200, description="Report document title")
-    case_id: uuid.UUID | None = Field(default=None, description="Optional case link")
+    case_id: Optional[uuid.UUID] = Field(default=None, description="Optional case link")
     include_graph_visualization: bool = Field(default=True)
-    summary_notes: str | None = None
+    summary_notes: Optional[str] = None
 
 
 class ReportRead(BaseModel):
@@ -29,8 +33,8 @@ class ReportRead(BaseModel):
     report_type: str
     title: str
     generated_at: datetime
-    file_path: str | None = None
-    summary_text: str | None = None
-    case_id: uuid.UUID | None = None
+    file_path: Optional[str] = None
+    summary_text: Optional[str] = None
+    case_id: Optional[uuid.UUID] = None
     created_at: datetime
     status: str

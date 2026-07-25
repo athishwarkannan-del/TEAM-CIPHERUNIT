@@ -1,3 +1,37 @@
 .stfolder
 .DS_Store
 Thumbs.db
+
+# Python virtual environments
+venv/
+venv_new/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / npm
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

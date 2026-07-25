@@ -4,6 +4,9 @@ MuleTrace AI — Datetime Helper Utilities.
 Standardized UTC timezone handling, ISO-8601 formatting, and duration math.
 """
 
+from __future__ import annotations
+
+
 from datetime import datetime, timedelta, timezone
 
 

@@ -4,10 +4,14 @@ MuleTrace AI — Report Repository.
 Handles database operations for compliance Report entities.
 """
 
+from __future__ import annotations
+
+
 import uuid
-from typing import Sequence
-from sqlalchemy import func, select
+from typing import Optional, Sequence
+from sqlalchemy import func, select, cast
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models.report import Report
 
@@ -18,13 +22,13 @@ class ReportRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, report_id: uuid.UUID) -> Report | None:
+    async def get_by_id(self, report_id: uuid.UUID) -> Optional[Report]:
         """Fetch report by UUID."""
         stmt = select(Report).where(Report.id == report_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_number(self, report_number: str) -> Report | None:
+    async def get_by_number(self, report_number: str) -> Optional[Report]:
         """Fetch report by report reference number."""
         stmt = select(Report).where(Report.report_number == report_number)
         result = await self.session.execute(stmt)
@@ -34,8 +38,8 @@ class ReportRepository:
         self,
         skip: int = 0,
         limit: int = 20,
-        report_type: str | None = None,
-        case_id: uuid.UUID | None = None,
+        report_type: Optional[str] = None,
+        case_id: Optional[uuid.UUID] = None,
     ) -> Sequence[Report]:
         """Fetch paginated reports."""
         stmt = select(Report)
@@ -51,8 +55,8 @@ class ReportRepository:
 
     async def count(
         self,
-        report_type: str | None = None,
-        case_id: uuid.UUID | None = None,
+        report_type: Optional[str] = None,
+        case_id: Optional[uuid.UUID] = None,
     ) -> int:
         """Count total reports."""
         stmt = select(func.count(Report.id))
@@ -71,3 +75,20 @@ class ReportRepository:
         await self.session.commit()
         await self.session.refresh(report)
         return report
+
+    async def get_victim_complaints_by_email(self, email: str) -> Sequence[Report]:
+        """Fetch all VICTIM_COMPLAINT reports for a given victim email.
+
+        Filters by report_type and searches summary_text (stored JSON)
+        for the victim_email field matching the provided address.
+        """
+        stmt = (
+            select(Report)
+            .where(Report.report_type == "VICTIM_COMPLAINT")
+            .where(
+                cast(Report.summary_text, JSONB)["victim_email"].astext == email
+            )
+            .order_by(Report.generated_at.desc())
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

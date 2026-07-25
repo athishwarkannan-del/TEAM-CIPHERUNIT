@@ -5,6 +5,10 @@ Represents registered beneficiaries for accounts.
 Used for Shared Beneficiary pattern detection.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -34,12 +38,12 @@ class Beneficiary(Base, TimestampMixin):
         nullable=False,
         comment="Beneficiary name",
     )
-    bank_name: Mapped[str | None] = mapped_column(
+    bank_name: Mapped[Optional[str]] = mapped_column(
         String(200),
         nullable=True,
         comment="Target bank name",
     )
-    ifsc_code: Mapped[str | None] = mapped_column(
+    ifsc_code: Mapped[Optional[str]] = mapped_column(
         String(11),
         nullable=True,
         index=True,

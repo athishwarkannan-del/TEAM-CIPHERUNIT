@@ -4,6 +4,9 @@ MuleTrace AI — Graph Path Analysis Engine.
 Performs Cypher-based path tracing, community detection, and centrality analysis on Neo4j.
 """
 
+from __future__ import annotations
+
+
 import logging
 from typing import Any
 from app.database.neo4j import neo4j_manager

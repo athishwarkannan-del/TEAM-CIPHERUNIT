@@ -4,6 +4,10 @@ MuleTrace AI — Alerts Endpoints.
 API endpoints for suspicious activity alert triage and management.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.dependencies import get_alert_service
@@ -18,10 +22,10 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 async def list_alerts(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    severity: str | None = Query(default=None),
-    alert_status: str | None = Query(default=None),
-    pattern_type: str | None = Query(default=None),
-    account_id: uuid.UUID | None = Query(default=None),
+    severity: Optional[str] = Query(default=None),
+    alert_status: Optional[str] = Query(default=None),
+    pattern_type: Optional[str] = Query(default=None),
+    account_id: Optional[uuid.UUID] = Query(default=None),
     service: AlertService = Depends(get_alert_service),
 ) -> PaginatedResponse[AlertRead]:
     """Retrieve suspicious activity alert queue with severity and triage status filters."""

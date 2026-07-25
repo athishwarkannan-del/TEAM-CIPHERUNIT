@@ -140,11 +140,15 @@ export default function TransactionsPage() {
       page: 1,
       page_size: 20,
       channel: channelFilter || undefined,
-    }).then((res) => {
-      setTransactions(res.data);
-      setPagination(res.pagination);
-      setLoading(false);
-    });
+    })
+      .then((res) => {
+        setTransactions(res.data);
+        setPagination(res.pagination);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [channelFilter]);
 
   const filtered = searchRef

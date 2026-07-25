@@ -8,7 +8,10 @@ Provides privacy-preserving multi-bank federated graph learning endpoints:
     - Private Set Intersection (PSI) cross-bank alert correlation
 """
 
-from typing import Any
+from __future__ import annotations
+
+
+from typing import Optional, Any
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.engines.federated.alert_correlator import alert_correlator
@@ -71,8 +74,8 @@ async def initiate_round(payload: InitiateRoundRequest) -> InitiateRoundResponse
     return coordinator.initiate_round(payload)
 
 
-@router.get("/rounds/current", response_model=TrainingRoundInfo | None, summary="Get active training round")
-async def get_current_round() -> TrainingRoundInfo | None:
+@router.get("/rounds/current", response_model=Optional[TrainingRoundInfo], summary="Get active training round")
+async def get_current_round() -> Optional[TrainingRoundInfo]:
     """Get information about the currently active training round."""
     return coordinator.get_current_round()
 
@@ -96,8 +99,8 @@ async def upload_weights(payload: ModelWeightUpload) -> dict[str, Any]:
     return result
 
 
-@router.post("/weights/aggregate", response_model=GlobalModelResponse | None, summary="Execute FedAvg aggregation")
-async def aggregate_weights() -> GlobalModelResponse | None:
+@router.post("/weights/aggregate", response_model=Optional[GlobalModelResponse], summary="Execute FedAvg aggregation")
+async def aggregate_weights() -> Optional[GlobalModelResponse]:
     """Execute Federated Averaging (FedAvg) on current round uploaded weights."""
     result = coordinator.aggregate_weights()
     if not result:
@@ -108,8 +111,8 @@ async def aggregate_weights() -> GlobalModelResponse | None:
     return result
 
 
-@router.get("/global-model", response_model=GlobalModelResponse | None, summary="Download latest global model")
-async def get_global_model() -> GlobalModelResponse | None:
+@router.get("/global-model", response_model=Optional[GlobalModelResponse], summary="Download latest global model")
+async def get_global_model() -> Optional[GlobalModelResponse]:
     """Download the latest aggregated global GNN model weights."""
     model = coordinator.get_global_model()
     if not model:
@@ -195,7 +198,7 @@ async def report_flagged_hashes(
 
 @router.get("/alerts", response_model=list[CrossBankAlert], summary="Get cross-bank mule network alerts")
 async def get_cross_bank_alerts(
-    min_severity: CrossBankAlertSeverity | None = Query(default=None),
+    min_severity: Optional[CrossBankAlertSeverity] = Query(default=None),
 ) -> list[CrossBankAlert]:
     """Get all privacy-preserving cross-bank mule network alerts."""
     return alert_correlator.get_all_alerts(min_severity=min_severity)

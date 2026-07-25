@@ -4,8 +4,11 @@ MuleTrace AI — Alert Repository.
 Database operations for suspicious activity Alert entities.
 """
 
+from __future__ import annotations
+
+
 import uuid
-from typing import Sequence
+from typing import Optional, Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,13 +21,13 @@ class AlertRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, alert_id: uuid.UUID) -> Alert | None:
+    async def get_by_id(self, alert_id: uuid.UUID) -> Optional[Alert]:
         """Fetch alert by UUID."""
         stmt = select(Alert).where(Alert.id == alert_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_number(self, alert_number: str) -> Alert | None:
+    async def get_by_number(self, alert_number: str) -> Optional[Alert]:
         """Fetch alert by alert reference string."""
         stmt = select(Alert).where(Alert.alert_number == alert_number)
         result = await self.session.execute(stmt)
@@ -34,10 +37,10 @@ class AlertRepository:
         self,
         skip: int = 0,
         limit: int = 20,
-        severity: str | None = None,
-        alert_status: str | None = None,
-        pattern_type: str | None = None,
-        account_id: uuid.UUID | None = None,
+        severity: Optional[str] = None,
+        alert_status: Optional[str] = None,
+        pattern_type: Optional[str] = None,
+        account_id: Optional[uuid.UUID] = None,
     ) -> Sequence[Alert]:
         """Fetch paginated alerts with filtering."""
         stmt = select(Alert)
@@ -57,10 +60,10 @@ class AlertRepository:
 
     async def count(
         self,
-        severity: str | None = None,
-        alert_status: str | None = None,
-        pattern_type: str | None = None,
-        account_id: uuid.UUID | None = None,
+        severity: Optional[str] = None,
+        alert_status: Optional[str] = None,
+        pattern_type: Optional[str] = None,
+        account_id: Optional[uuid.UUID] = None,
     ) -> int:
         """Count total alerts matching criteria."""
         stmt = select(func.count(Alert.id))

@@ -5,6 +5,10 @@ Represents IP addresses used during account operations.
 Used for Shared IP and Impossible Travel pattern detection.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -29,28 +33,28 @@ class IPAddress(Base, TimestampMixin):
         index=True,
         comment="IPv4 or IPv6 address string",
     )
-    isp: Mapped[str | None] = mapped_column(
+    isp: Mapped[Optional[str]] = mapped_column(
         String(150),
         nullable=True,
         comment="Internet Service Provider",
     )
-    city: Mapped[str | None] = mapped_column(
+    city: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         index=True,
         comment="Geo city",
     )
-    country: Mapped[str | None] = mapped_column(
+    country: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         comment="Geo country",
     )
-    latitude: Mapped[float | None] = mapped_column(
+    latitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Geo latitude",
     )
-    longitude: Mapped[float | None] = mapped_column(
+    longitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Geo longitude",
@@ -61,7 +65,7 @@ class IPAddress(Base, TimestampMixin):
         nullable=False,
         comment="Indicates whether IP is a known VPN, proxy, or TOR exit node",
     )
-    last_used_at: Mapped[datetime | None] = mapped_column(
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Last active timestamp for this IP",

@@ -4,6 +4,9 @@ MuleTrace AI — Dashboard Endpoint.
 Serves the main SOC Investigation Dashboard payload.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter, Depends
 from app.api.dependencies import get_dashboard_service
 from app.schemas.common import BaseResponse

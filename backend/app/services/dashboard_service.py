@@ -4,6 +4,9 @@ MuleTrace AI — Dashboard Service.
 Business logic service for assembling the SOC Investigation Dashboard overview.
 """
 
+from __future__ import annotations
+
+
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.dashboard_repository import DashboardRepository
 from app.schemas.alert import AlertRead

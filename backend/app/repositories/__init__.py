@@ -4,6 +4,9 @@ MuleTrace AI — Repositories Package.
 Exports all database repositories.
 """
 
+from __future__ import annotations
+
+
 from app.repositories.account_repository import AccountRepository
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.analytics_repository import AnalyticsRepository

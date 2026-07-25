@@ -5,6 +5,9 @@ Production-grade FastAPI application initialization with lifespan context manage
 logging setup, database initialization, CORS, middleware, and OpenAPI configuration.
 """
 
+from __future__ import annotations
+
+
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from fastapi import FastAPI

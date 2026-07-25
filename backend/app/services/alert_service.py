@@ -4,6 +4,10 @@ MuleTrace AI — Alert Service.
 Business logic service for managing suspicious activity alerts and triage workflow.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from app.models.alert import Alert
 from app.repositories.alert_repository import AlertRepository
@@ -17,7 +21,7 @@ class AlertService:
     def __init__(self, alert_repo: AlertRepository) -> None:
         self.alert_repo = alert_repo
 
-    async def get_alert_by_id(self, alert_id: uuid.UUID) -> AlertRead | None:
+    async def get_alert_by_id(self, alert_id: uuid.UUID) -> Optional[AlertRead]:
         """Fetch alert by UUID."""
         alert = await self.alert_repo.get_by_id(alert_id)
         if not alert:
@@ -28,10 +32,10 @@ class AlertService:
         self,
         page: int = 1,
         page_size: int = 20,
-        severity: str | None = None,
-        alert_status: str | None = None,
-        pattern_type: str | None = None,
-        account_id: uuid.UUID | None = None,
+        severity: Optional[str] = None,
+        alert_status: Optional[str] = None,
+        pattern_type: Optional[str] = None,
+        account_id: Optional[uuid.UUID] = None,
     ) -> PaginatedResponse[AlertRead]:
         """Fetch paginated alert queue."""
         skip = (page - 1) * page_size
@@ -72,7 +76,7 @@ class AlertService:
         created = await self.alert_repo.create(alert_obj)
         return AlertRead.model_validate(created)
 
-    async def triage_alert(self, alert_id: uuid.UUID, payload: AlertTriageUpdate) -> AlertRead | None:
+    async def triage_alert(self, alert_id: uuid.UUID, payload: AlertTriageUpdate) -> Optional[AlertRead]:
         """Update triage status of an alert."""
         alert = await self.alert_repo.get_by_id(alert_id)
         if not alert:

@@ -5,6 +5,10 @@ Represents an investigation case opened by a fraud analyst or investigator.
 Groups related alerts, accounts, and evidence into an actionable investigation.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, String, Text
@@ -48,7 +52,7 @@ class Case(Base, TimestampMixin):
         index=True,
         comment="Case status (OPEN, IN_PROGRESS, PENDING_REVIEW, CLOSED_CONFIRMED, CLOSED_FALSE_POSITIVE)",
     )
-    assigned_investigator_id: Mapped[str | None] = mapped_column(
+    assigned_investigator_id: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         index=True,
@@ -59,12 +63,12 @@ class Case(Base, TimestampMixin):
         nullable=False,
         comment="Case creation timestamp",
     )
-    closed_at: Mapped[datetime | None] = mapped_column(
+    closed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Case closure timestamp",
     )
-    summary_notes: Mapped[str | None] = mapped_column(
+    summary_notes: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Investigator findings & summary notes",

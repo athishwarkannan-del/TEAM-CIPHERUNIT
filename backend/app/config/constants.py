@@ -8,6 +8,9 @@ Usage:
     from app.config.constants import API_V1_PREFIX, DEFAULT_PAGE_SIZE
 """
 
+from __future__ import annotations
+
+
 # -----------------------------------------------------------------------------
 # API Versioning
 # -----------------------------------------------------------------------------

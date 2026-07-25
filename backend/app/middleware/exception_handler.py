@@ -4,6 +4,9 @@ MuleTrace AI — Global Exception Handlers.
 Catches uncaught exceptions and domain errors, serializing them into standardized ErrorResponse JSON payloads.
 """
 
+from __future__ import annotations
+
+
 import logging
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError

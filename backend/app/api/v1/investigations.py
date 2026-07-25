@@ -4,6 +4,9 @@ MuleTrace AI — Investigations Endpoints.
 API endpoints for investigation case management and evidence tracking.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter
 from app.schemas.common import BaseResponse
 

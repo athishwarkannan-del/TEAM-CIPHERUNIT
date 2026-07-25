@@ -4,6 +4,9 @@ MuleTrace AI — Analytics Service.
 Business logic service for financial crime visual analytics and time-series reports.
 """
 
+from __future__ import annotations
+
+
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import (
     AnalyticsOverviewResponse,

@@ -4,6 +4,9 @@ MuleTrace AI — Analytics Repository.
 Handles aggregation and time-series query operations for financial crime analytics.
 """
 
+from __future__ import annotations
+
+
 from typing import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

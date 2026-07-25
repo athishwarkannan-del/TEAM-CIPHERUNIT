@@ -4,6 +4,10 @@ MuleTrace AI — Report Model.
 Represents compliance reports generated for regulatory submission (STR / CTR / Cybercrime Reports).
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -46,19 +50,19 @@ class Report(Base, TimestampMixin):
         nullable=False,
         comment="Generation timestamp",
     )
-    file_path: Mapped[str | None] = mapped_column(
+    file_path: Mapped[Optional[str]] = mapped_column(
         String(500),
         nullable=True,
         comment="Stored PDF/JSON report artifact path or URL",
     )
-    summary_text: Mapped[str | None] = mapped_column(
+    summary_text: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="LLM-generated executive narrative",
     )
 
     # ── Foreign Keys ──────────────────────────────────────────────────
-    case_id: Mapped[uuid.UUID | None] = mapped_column(
+    case_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("cases.id", ondelete="SET NULL"),
         nullable=True,
@@ -67,7 +71,7 @@ class Report(Base, TimestampMixin):
     )
 
     # ── Relationships ──────────────────────────────────────────────────
-    case: Mapped["Case | None"] = relationship(  # noqa: F821
+    case: Mapped["Optional[Case]"] = relationship(  # noqa: F821
         "Case",
         back_populates="reports",
     )

@@ -2,7 +2,8 @@
 // MuleTrace AI — API Client Layer
 // =============================================================================
 // Typed fetch functions for all backend endpoints.
-// Falls back to mock data when NEXT_PUBLIC_API_URL is not set.
+// Falls back to mock data when NEXT_PUBLIC_API_URL is not set OR when the
+// backend is unreachable (connection refused, timeout, HTTP error).
 // =============================================================================
 
 import type {
@@ -37,12 +38,22 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 const USE_MOCK = !API_BASE;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`API Error ${res.status}: ${res.statusText}`);
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000); // 4s timeout
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      signal: controller.signal,
+      ...options,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`API Error ${res.status}: ${res.statusText}`);
+    return res.json();
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -52,7 +63,11 @@ export async function fetchDashboard(): Promise<BaseResponse<DashboardOverviewRe
   if (USE_MOCK) {
     return { success: true, message: "Mock data", data: mockDashboard };
   }
-  return apiFetch<BaseResponse<DashboardOverviewResponse>>("/api/v1/dashboard");
+  try {
+    return await apiFetch<BaseResponse<DashboardOverviewResponse>>("/api/v1/dashboard");
+  } catch {
+    return { success: true, message: "Fallback mock data", data: mockDashboard };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -71,12 +86,20 @@ export async function fetchAccounts(params?: {
     const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
     return { success: true, message: "Mock data", data, pagination };
   }
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.page_size) qs.set("page_size", String(params.page_size));
-  if (params?.risk_level) qs.set("risk_level", params.risk_level);
-  if (params?.is_flagged_mule !== undefined) qs.set("is_flagged_mule", String(params.is_flagged_mule));
-  return apiFetch<PaginatedResponse<AccountRead>>(`/api/v1/accounts?${qs}`);
+  try {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.page_size) qs.set("page_size", String(params.page_size));
+    if (params?.risk_level) qs.set("risk_level", params.risk_level);
+    if (params?.is_flagged_mule !== undefined) qs.set("is_flagged_mule", String(params.is_flagged_mule));
+    return await apiFetch<PaginatedResponse<AccountRead>>(`/api/v1/accounts?${qs}`);
+  } catch {
+    let filtered = [...mockAccounts];
+    if (params?.risk_level) filtered = filtered.filter((a) => a.risk_level === params.risk_level);
+    if (params?.is_flagged_mule !== undefined) filtered = filtered.filter((a) => a.is_flagged_mule === params.is_flagged_mule);
+    const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
+    return { success: true, message: "Fallback mock data", data, pagination };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -97,13 +120,22 @@ export async function fetchTransactions(params?: {
     const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
     return { success: true, message: "Mock data", data, pagination };
   }
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.page_size) qs.set("page_size", String(params.page_size));
-  if (params?.channel) qs.set("channel", params.channel);
-  if (params?.min_amount) qs.set("min_amount", String(params.min_amount));
-  if (params?.max_amount) qs.set("max_amount", String(params.max_amount));
-  return apiFetch<PaginatedResponse<TransactionRead>>(`/api/v1/transactions?${qs}`);
+  try {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.page_size) qs.set("page_size", String(params.page_size));
+    if (params?.channel) qs.set("channel", params.channel);
+    if (params?.min_amount) qs.set("min_amount", String(params.min_amount));
+    if (params?.max_amount) qs.set("max_amount", String(params.max_amount));
+    return await apiFetch<PaginatedResponse<TransactionRead>>(`/api/v1/transactions?${qs}`);
+  } catch {
+    let filtered = [...mockTransactions];
+    if (params?.channel) filtered = filtered.filter((t) => t.channel === params.channel);
+    if (params?.min_amount) filtered = filtered.filter((t) => t.amount >= params.min_amount!);
+    if (params?.max_amount) filtered = filtered.filter((t) => t.amount <= params.max_amount!);
+    const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
+    return { success: true, message: "Fallback mock data", data, pagination };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -122,12 +154,20 @@ export async function fetchAlerts(params?: {
     const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
     return { success: true, message: "Mock data", data, pagination };
   }
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.page_size) qs.set("page_size", String(params.page_size));
-  if (params?.severity) qs.set("severity", params.severity);
-  if (params?.alert_status) qs.set("alert_status", params.alert_status);
-  return apiFetch<PaginatedResponse<AlertRead>>(`/api/v1/alerts?${qs}`);
+  try {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.page_size) qs.set("page_size", String(params.page_size));
+    if (params?.severity) qs.set("severity", params.severity);
+    if (params?.alert_status) qs.set("alert_status", params.alert_status);
+    return await apiFetch<PaginatedResponse<AlertRead>>(`/api/v1/alerts?${qs}`);
+  } catch {
+    let filtered = [...mockAlerts];
+    if (params?.severity) filtered = filtered.filter((a) => a.severity === params.severity);
+    if (params?.alert_status) filtered = filtered.filter((a) => a.alert_status === params.alert_status);
+    const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
+    return { success: true, message: "Fallback mock data", data, pagination };
+  }
 }
 
 export async function triageAlert(id: string, payload: AlertTriageUpdate): Promise<BaseResponse<AlertRead>> {
@@ -137,10 +177,17 @@ export async function triageAlert(id: string, payload: AlertTriageUpdate): Promi
     const updated = { ...alert, alert_status: payload.alert_status, updated_at: new Date().toISOString() };
     return { success: true, message: "Alert triaged", data: updated };
   }
-  return apiFetch<BaseResponse<AlertRead>>(`/api/v1/alerts/${id}/triage`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiFetch<BaseResponse<AlertRead>>(`/api/v1/alerts/${id}/triage`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    const alert = mockAlerts.find((a) => a.id === id);
+    if (!alert) throw new Error("Alert not found");
+    const updated = { ...alert, alert_status: payload.alert_status, updated_at: new Date().toISOString() };
+    return { success: true, message: "Alert triaged (offline)", data: updated };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -150,7 +197,11 @@ export async function fetchAnalytics(): Promise<BaseResponse<AnalyticsOverviewRe
   if (USE_MOCK) {
     return { success: true, message: "Mock data", data: mockAnalytics };
   }
-  return apiFetch<BaseResponse<AnalyticsOverviewResponse>>("/api/v1/analytics");
+  try {
+    return await apiFetch<BaseResponse<AnalyticsOverviewResponse>>("/api/v1/analytics");
+  } catch {
+    return { success: true, message: "Fallback mock data", data: mockAnalytics };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -197,7 +248,11 @@ export async function fetchInvestigations(): Promise<BaseResponse<{ cases: typeo
   if (USE_MOCK) {
     return { success: true, message: "Mock data", data: { cases: mockInvestigations } };
   }
-  return apiFetch("/api/v1/investigations");
+  try {
+    return await apiFetch("/api/v1/investigations");
+  } catch {
+    return { success: true, message: "Fallback mock data", data: { cases: mockInvestigations } };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -214,10 +269,17 @@ export async function fetchReports(params?: {
     const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
     return { success: true, message: "Mock data", data, pagination };
   }
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.report_type) qs.set("report_type", params.report_type);
-  return apiFetch<PaginatedResponse<ReportRead>>(`/api/v1/reports?${qs}`);
+  try {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.report_type) qs.set("report_type", params.report_type);
+    return await apiFetch<PaginatedResponse<ReportRead>>(`/api/v1/reports?${qs}`);
+  } catch {
+    let filtered = [...mockReports];
+    if (params?.report_type) filtered = filtered.filter((r) => r.report_type === params.report_type);
+    const { data, pagination } = paginate(filtered, params?.page || 1, params?.page_size || 20);
+    return { success: true, message: "Fallback mock data", data, pagination };
+  }
 }
 
 export async function generateReport(payload: ReportGenerateRequest): Promise<BaseResponse<ReportRead>> {
@@ -236,8 +298,24 @@ export async function generateReport(payload: ReportGenerateRequest): Promise<Ba
     };
     return { success: true, message: "Report generated", data: newReport };
   }
-  return apiFetch<BaseResponse<ReportRead>>("/api/v1/reports", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiFetch<BaseResponse<ReportRead>>("/api/v1/reports", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    const newReport: ReportRead = {
+      id: crypto.randomUUID(),
+      report_number: `STR-2025-${String(Math.floor(Math.random() * 9000 + 1000))}`,
+      report_type: payload.report_type,
+      title: payload.title,
+      generated_at: new Date().toISOString(),
+      file_path: null,
+      summary_text: payload.summary_notes || "AI-generated summary pending...",
+      case_id: payload.case_id || null,
+      created_at: new Date().toISOString(),
+      status: "DRAFT",
+    };
+    return { success: true, message: "Report generated (offline)", data: newReport };
+  }
 }

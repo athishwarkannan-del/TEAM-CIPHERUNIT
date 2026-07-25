@@ -5,6 +5,10 @@ Represents a customer bank account being monitored for mule activity.
 Stores account profile information, risk score, and relationships.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -84,14 +88,14 @@ class Account(Base, TimestampMixin):
         index=True,
         comment="Flagged as confirmed or suspected mule account",
     )
-    opened_at: Mapped[datetime | None] = mapped_column(
+    opened_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Account opening timestamp",
     )
 
     # ── Foreign Keys ──────────────────────────────────────────────────
-    branch_id: Mapped[uuid.UUID | None] = mapped_column(
+    branch_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("branches.id", ondelete="SET NULL"),
         nullable=True,
@@ -100,7 +104,7 @@ class Account(Base, TimestampMixin):
     )
 
     # ── Relationships ──────────────────────────────────────────────────
-    branch: Mapped["Branch | None"] = relationship(  # noqa: F821
+    branch: Mapped["Optional[Branch]"] = relationship(  # noqa: F821
         "Branch",
         back_populates="accounts",
     )

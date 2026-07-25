@@ -18,6 +18,9 @@ Usage:
         account_number = Column(String(20), unique=True, nullable=False)
 """
 
+from __future__ import annotations
+
+
 import uuid
 from datetime import datetime, timezone
 

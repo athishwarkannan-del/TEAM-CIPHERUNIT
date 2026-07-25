@@ -4,6 +4,10 @@ MuleTrace AI — Report Service.
 Business logic service for regulatory compliance report generation (STR/CTR).
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from app.models.report import Report
 from app.repositories.report_repository import ReportRepository
@@ -17,7 +21,7 @@ class ReportService:
     def __init__(self, report_repo: ReportRepository) -> None:
         self.report_repo = report_repo
 
-    async def get_report_by_id(self, report_id: uuid.UUID) -> ReportRead | None:
+    async def get_report_by_id(self, report_id: uuid.UUID) -> Optional[ReportRead]:
         """Fetch report by UUID."""
         report = await self.report_repo.get_by_id(report_id)
         if not report:
@@ -28,8 +32,8 @@ class ReportService:
         self,
         page: int = 1,
         page_size: int = 20,
-        report_type: str | None = None,
-        case_id: uuid.UUID | None = None,
+        report_type: Optional[str] = None,
+        case_id: Optional[uuid.UUID] = None,
     ) -> PaginatedResponse[ReportRead]:
         """Fetch paginated report list."""
         skip = (page - 1) * page_size

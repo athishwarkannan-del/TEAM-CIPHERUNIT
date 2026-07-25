@@ -4,6 +4,9 @@ MuleTrace AI — API v1 Master Router.
 Combines all v1 sub-routers under the /api/v1 prefix.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter
 
 from app.api.v1.accounts import router as accounts_router
@@ -17,6 +20,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.investigations import router as investigations_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.transactions import router as transactions_router
+from app.api.v1.victim_complaints import router as victim_complaints_router
 
 api_v1_router = APIRouter()
 
@@ -31,3 +35,4 @@ api_v1_router.include_router(geo_router)
 api_v1_router.include_router(investigations_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(federated_router)
+api_v1_router.include_router(victim_complaints_router)

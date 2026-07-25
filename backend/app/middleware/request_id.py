@@ -5,6 +5,9 @@ Generates or forwards a unique X-Request-ID header for every HTTP request.
 Enables distributed tracing across log aggregators.
 """
 
+from __future__ import annotations
+
+
 import uuid
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint

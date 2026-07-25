@@ -4,6 +4,10 @@ MuleTrace AI — Account Service.
 Business logic service for bank account management and risk assessment lookup.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from app.models.account import Account
 from app.repositories.account_repository import AccountRepository
@@ -17,7 +21,7 @@ class AccountService:
     def __init__(self, account_repo: AccountRepository) -> None:
         self.account_repo = account_repo
 
-    async def get_account_by_id(self, account_id: uuid.UUID) -> AccountRead | None:
+    async def get_account_by_id(self, account_id: uuid.UUID) -> Optional[AccountRead]:
         """Get single account by UUID."""
         account = await self.account_repo.get_by_id(account_id)
         if not account:
@@ -28,8 +32,8 @@ class AccountService:
         self,
         page: int = 1,
         page_size: int = 20,
-        risk_level: str | None = None,
-        is_flagged_mule: bool | None = None,
+        risk_level: Optional[str] = None,
+        is_flagged_mule: Optional[bool] = None,
     ) -> PaginatedResponse[AccountRead]:
         """Fetch paginated account list with filter metadata."""
         skip = (page - 1) * page_size
@@ -66,7 +70,7 @@ class AccountService:
         created = await self.account_repo.create(account_obj)
         return AccountRead.model_validate(created)
 
-    async def update_account(self, account_id: uuid.UUID, payload: AccountUpdate) -> AccountRead | None:
+    async def update_account(self, account_id: uuid.UUID, payload: AccountUpdate) -> Optional[AccountRead]:
         """Update existing account profile or risk state."""
         account = await self.account_repo.get_by_id(account_id)
         if not account:

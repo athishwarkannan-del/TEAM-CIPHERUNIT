@@ -17,6 +17,9 @@ Exports:
     Rule
 """
 
+from __future__ import annotations
+
+
 from app.models.account import Account
 from app.models.alert import Alert
 from app.models.atm import ATM

@@ -4,6 +4,9 @@ MuleTrace AI — Dashboard Schemas.
 Pydantic schemas for the main SOC Investigation Dashboard overview and metrics.
 """
 
+from __future__ import annotations
+
+
 from pydantic import BaseModel, Field
 from app.schemas.alert import AlertRead
 

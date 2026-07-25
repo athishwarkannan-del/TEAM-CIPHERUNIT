@@ -5,6 +5,10 @@ Represents physical devices used to access bank accounts.
 Critical for Shared Device pattern detection.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -30,22 +34,22 @@ class Device(Base, TimestampMixin):
         index=True,
         comment="Unique hardware/browser fingerprint",
     )
-    device_model: Mapped[str | None] = mapped_column(
+    device_model: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         comment="Device brand/model (e.g. Samsung Galaxy S23)",
     )
-    os_version: Mapped[str | None] = mapped_column(
+    os_version: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
         comment="Operating system & version",
     )
-    app_version: Mapped[str | None] = mapped_column(
+    app_version: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
         comment="Banking app version",
     )
-    last_seen_at: Mapped[datetime | None] = mapped_column(
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Last active timestamp for this device",

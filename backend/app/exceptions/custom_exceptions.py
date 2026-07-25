@@ -4,6 +4,9 @@ MuleTrace AI — Custom Domain Exceptions.
 Application-specific exception classes for financial crime backend operations.
 """
 
+from __future__ import annotations
+
+
 
 class MuleTraceException(Exception):
     """Base exception class for MuleTrace AI domain errors."""

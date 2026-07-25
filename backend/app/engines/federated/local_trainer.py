@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Optional, Any
 
 import numpy as np
 
@@ -174,7 +174,7 @@ class LocalGraphTrainer:
 
     def __init__(self, hidden_dim: int = 64) -> None:
         self.hidden_dim = hidden_dim
-        self.model: GraphSAGEModel | None = None
+        self.model: Optional[GraphSAGEModel] = None
 
     async def extract_local_graph(self) -> LocalGraphData:
         """Extract account nodes and transaction edges from Neo4j.
@@ -293,8 +293,8 @@ class LocalGraphTrainer:
         self,
         epochs: int = 5,
         learning_rate: float = 0.01,
-        global_weights: dict[str, list[list[float]]] | None = None,
-        global_biases: dict[str, list[float]] | None = None,
+        global_weights: dict[str, Optional[list[list[float]]]] = None,
+        global_biases: dict[str, Optional[list[float]]] = None,
     ) -> TrainingResult:
         """Run local GNN training on the extracted graph.
 

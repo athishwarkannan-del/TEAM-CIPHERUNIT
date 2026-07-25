@@ -4,6 +4,9 @@ MuleTrace AI — Graph Builder.
 Constructs Neo4j Cypher statements to sync transaction graph nodes and edges.
 """
 
+from __future__ import annotations
+
+
 import logging
 from typing import Any
 from app.database.neo4j import neo4j_manager

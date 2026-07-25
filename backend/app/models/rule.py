@@ -4,6 +4,10 @@ MuleTrace AI — Rule Model.
 Represents detection rules used by the Rule Engine to flag suspicious patterns.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 from sqlalchemy import Boolean, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,7 +40,7 @@ class Rule(Base, TimestampMixin):
         index=True,
         comment="Associated pattern (High Velocity, Fan In, Circular Loop, etc.)",
     )
-    description: Mapped[str | None] = mapped_column(
+    description: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Rule rationale and detection criteria",
@@ -54,12 +58,12 @@ class Rule(Base, TimestampMixin):
         index=True,
         comment="Toggle state for rule evaluation",
     )
-    threshold_value: Mapped[float | None] = mapped_column(
+    threshold_value: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Numeric threshold for rule trigger",
     )
-    time_window_minutes: Mapped[int | None] = mapped_column(
+    time_window_minutes: Mapped[Optional[int]] = mapped_column(
         Integer,
         nullable=True,
         comment="Time window window in minutes for velocity evaluation",

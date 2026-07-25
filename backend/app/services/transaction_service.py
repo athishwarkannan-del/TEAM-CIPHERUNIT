@@ -5,6 +5,10 @@ Business logic service for financial transaction processing, risk engine evaluat
 and Neo4j graph synchronization.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from app.engines.graph.graph_builder import graph_builder
 from app.engines.ml.xgboost_model import ml_engine
@@ -21,7 +25,7 @@ class TransactionService:
     def __init__(self, transaction_repo: TransactionRepository) -> None:
         self.transaction_repo = transaction_repo
 
-    async def get_transaction_by_id(self, transaction_id: uuid.UUID) -> TransactionRead | None:
+    async def get_transaction_by_id(self, transaction_id: uuid.UUID) -> Optional[TransactionRead]:
         """Fetch single transaction by UUID."""
         tx = await self.transaction_repo.get_by_id(transaction_id)
         if not tx:
@@ -32,7 +36,7 @@ class TransactionService:
         self,
         page: int = 1,
         page_size: int = 20,
-        filters: TransactionFilterParams | None = None,
+        filters: Optional[TransactionFilterParams] = None,
     ) -> PaginatedResponse[TransactionRead]:
         """Fetch paginated transactions matching filter parameters."""
         skip = (page - 1) * page_size

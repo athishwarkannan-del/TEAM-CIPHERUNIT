@@ -4,6 +4,10 @@ MuleTrace AI — Reports Endpoints.
 API endpoints for STR/CTR compliance report generation and retrieval.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.dependencies import get_report_service
@@ -18,8 +22,8 @@ router = APIRouter(prefix="/reports", tags=["Compliance Reports"])
 async def list_reports(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    report_type: str | None = Query(default=None),
-    case_id: uuid.UUID | None = Query(default=None),
+    report_type: Optional[str] = Query(default=None),
+    case_id: Optional[uuid.UUID] = Query(default=None),
     service: ReportService = Depends(get_report_service),
 ) -> PaginatedResponse[ReportRead]:
     """Retrieve list of generated STR/CTR regulatory compliance reports."""

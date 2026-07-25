@@ -4,6 +4,10 @@ MuleTrace AI — Accounts Endpoints.
 API endpoints for bank account lookup, creation, search, and updates.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.dependencies import get_account_service
@@ -18,8 +22,8 @@ router = APIRouter(prefix="/accounts", tags=["Accounts"])
 async def list_accounts(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    risk_level: str | None = Query(default=None),
-    is_flagged_mule: bool | None = Query(default=None),
+    risk_level: Optional[str] = Query(default=None),
+    is_flagged_mule: Optional[bool] = Query(default=None),
     service: AccountService = Depends(get_account_service),
 ) -> PaginatedResponse[AccountRead]:
     """List monitored bank accounts with optional risk level and mule flag filters."""

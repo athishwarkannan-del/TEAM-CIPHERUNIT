@@ -4,6 +4,9 @@ MuleTrace AI — Analytics Schemas.
 Pydantic schemas for analytics queries, volume trends, channel breakdowns, and geo heatmaps.
 """
 
+from __future__ import annotations
+
+
 from pydantic import BaseModel, Field
 
 

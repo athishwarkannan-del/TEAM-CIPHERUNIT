@@ -42,10 +42,14 @@ export default function InvestigationsPage() {
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchInvestigations().then((res) => {
-      if (res.data) setCases(res.data.cases);
-      setLoading(false);
-    });
+    fetchInvestigations()
+      .then((res) => {
+        if (res.data) setCases(res.data.cases);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {

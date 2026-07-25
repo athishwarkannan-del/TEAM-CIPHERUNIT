@@ -5,6 +5,9 @@ Deterministic rule evaluation engine for detection of financial crime patterns (
 Evaluates incoming transactions and account context against active threshold rules.
 """
 
+from __future__ import annotations
+
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone

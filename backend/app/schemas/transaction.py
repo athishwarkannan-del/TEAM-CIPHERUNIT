@@ -4,6 +4,10 @@ MuleTrace AI — Transaction Schemas.
 Pydantic schemas for Transaction data validation, filters, and API serialization.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,10 +21,10 @@ class TransactionBase(BaseModel):
     amount: float = Field(..., gt=0, description="Amount in local currency")
     currency: str = Field(default="INR", max_length=3)
     timestamp: datetime = Field(..., description="Transaction execution timestamp")
-    location_city: str | None = None
-    location_state: str | None = None
-    ip_address_str: str | None = None
-    device_fingerprint: str | None = None
+    location_city: Optional[str] = None
+    location_state: Optional[str] = None
+    ip_address_str: Optional[str] = None
+    device_fingerprint: Optional[str] = None
 
 
 class TransactionCreate(TransactionBase):
@@ -28,9 +32,9 @@ class TransactionCreate(TransactionBase):
 
     sender_account_id: uuid.UUID
     receiver_account_id: uuid.UUID
-    latitude: float | None = None
-    longitude: float | None = None
-    narrative: str | None = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    narrative: Optional[str] = None
 
 
 class TransactionRead(TransactionBase):
@@ -42,8 +46,8 @@ class TransactionRead(TransactionBase):
     sender_account_id: uuid.UUID
     receiver_account_id: uuid.UUID
     risk_score: int = Field(ge=0, le=100)
-    flagged_pattern: str | None = None
-    narrative: str | None = None
+    flagged_pattern: Optional[str] = None
+    narrative: Optional[str] = None
     created_at: datetime
     status: str
 
@@ -51,11 +55,11 @@ class TransactionRead(TransactionBase):
 class TransactionFilterParams(BaseModel):
     """Filter criteria for searching transactions."""
 
-    channel: str | None = None
-    min_amount: float | None = None
-    max_amount: float | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
+    channel: Optional[str] = None
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     flagged_only: bool = False
-    sender_account_id: uuid.UUID | None = None
-    receiver_account_id: uuid.UUID | None = None
+    sender_account_id: Optional[uuid.UUID] = None
+    receiver_account_id: Optional[uuid.UUID] = None

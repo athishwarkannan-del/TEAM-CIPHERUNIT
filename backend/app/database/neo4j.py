@@ -18,9 +18,12 @@ Usage:
         result = await session.run("MATCH (n) RETURN n LIMIT 10")
 """
 
+from __future__ import annotations
+
+
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Optional, AsyncGenerator
 
 from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncSession
 
@@ -41,7 +44,7 @@ class Neo4jManager:
     """
 
     def __init__(self) -> None:
-        self._driver: AsyncDriver | None = None
+        self._driver: Optional[AsyncDriver] = None
 
     async def connect(self) -> None:
         """Initialize the Neo4j async driver.

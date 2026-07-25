@@ -4,6 +4,9 @@ MuleTrace AI — Helper Utilities.
 General purpose helper utilities for currency formatting, dictionary cleaning, and masking.
 """
 
+from __future__ import annotations
+
+
 from typing import Any
 
 

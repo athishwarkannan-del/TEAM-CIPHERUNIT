@@ -5,6 +5,9 @@ Loads pre-trained RandomForest & XGBoost model pipelines from app/engines/ml/art
 to compute real-time risk scores and fraud probabilities for incoming transactions.
 """
 
+from __future__ import annotations
+
+
 import logging
 from dataclasses import dataclass
 from pathlib import Path

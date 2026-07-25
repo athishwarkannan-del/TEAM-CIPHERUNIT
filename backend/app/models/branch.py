@@ -7,6 +7,10 @@ for geographic analysis and branch-level risk aggregation.
 Branch is created first because Account depends on it via foreign key.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 from sqlalchemy import Float, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -60,17 +64,17 @@ class Branch(Base, TimestampMixin):
         index=True,
         comment="State where branch is located",
     )
-    address: Mapped[str | None] = mapped_column(
+    address: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Full branch address",
     )
-    latitude: Mapped[float | None] = mapped_column(
+    latitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Branch latitude for geo intelligence",
     )
-    longitude: Mapped[float | None] = mapped_column(
+    longitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Branch longitude for geo intelligence",

@@ -4,6 +4,9 @@ MuleTrace AI — Dashboard Repository.
 Provides aggregate statistical queries for the SOC Dashboard overview.
 """
 
+from __future__ import annotations
+
+
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

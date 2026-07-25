@@ -4,6 +4,9 @@ MuleTrace AI — Graph Relationship Engine.
 Maps multi-entity relationships (Account -> Device, Account -> IP, Account -> Beneficiary).
 """
 
+from __future__ import annotations
+
+
 import logging
 from app.database.neo4j import neo4j_manager
 

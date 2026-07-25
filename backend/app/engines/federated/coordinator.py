@@ -17,7 +17,7 @@ import logging
 import secrets
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Optional, Any
 
 import numpy as np
 
@@ -57,7 +57,7 @@ class FederatedCoordinator:
 
         # Training rounds
         self._rounds: list[TrainingRoundInfo] = []
-        self._current_round: TrainingRoundInfo | None = None
+        self._current_round: Optional[TrainingRoundInfo] = None
         self._round_contributions: dict[str, list[ModelWeightUpload]] = {}
 
         # Global model state
@@ -139,7 +139,7 @@ class FederatedCoordinator:
             for info in self._banks.values()
         ]
 
-    def validate_token(self, token: str) -> str | None:
+    def validate_token(self, token: str) -> Optional[str]:
         """Validate an API token and return the associated bank_id."""
         return self._bank_tokens.get(token)
 
@@ -187,7 +187,7 @@ class FederatedCoordinator:
             dp_delta=request.dp_delta,
         )
 
-    def get_current_round(self) -> TrainingRoundInfo | None:
+    def get_current_round(self) -> Optional[TrainingRoundInfo]:
         """Get the currently active training round."""
         return self._current_round
 
@@ -238,7 +238,7 @@ class FederatedCoordinator:
             "total_samples": self._current_round.total_samples,
         }
 
-    def aggregate_weights(self) -> GlobalModelResponse | None:
+    def aggregate_weights(self) -> Optional[GlobalModelResponse]:
         """Perform Federated Averaging (FedAvg) on all received weight updates.
 
         w_global = Σ (n_k / n_total) * w_k
@@ -332,7 +332,7 @@ class FederatedCoordinator:
 
         return response
 
-    def get_global_model(self) -> GlobalModelResponse | None:
+    def get_global_model(self) -> Optional[GlobalModelResponse]:
         """Get the latest aggregated global model weights."""
         if not self._global_weights:
             return None

@@ -5,6 +5,9 @@ Trains RandomForest and XGBoost models on ml/transactions.csv dataset and
 exports model artifacts (.pkl / .json) to app/engines/ml/artifacts/.
 """
 
+from __future__ import annotations
+
+
 import logging
 from pathlib import Path
 import joblib

@@ -14,6 +14,10 @@ Usage:
     from app.database.postgres import async_session_factory, init_engine, dispose_engine
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import logging
 
 from sqlalchemy.ext.asyncio import (
@@ -30,7 +34,7 @@ logger = logging.getLogger("app.database.postgres")
 # ---------------------------------------------------------------------------
 # Engine — created lazily via init_engine(), used throughout the app.
 # ---------------------------------------------------------------------------
-_engine: AsyncEngine | None = None
+_engine: Optional[AsyncEngine] = None
 
 # ---------------------------------------------------------------------------
 # Session Factory — produces AsyncSession instances for each request.

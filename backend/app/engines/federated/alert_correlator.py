@@ -19,7 +19,7 @@ import hmac
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Optional, Any
 
 from app.engines.federated.schemas import (
     CrossBankAlert,
@@ -169,7 +169,7 @@ class AlertCorrelatorEngine:
             queried_at=now,
         )
 
-    def get_all_alerts(self, min_severity: CrossBankAlertSeverity | None = None) -> list[CrossBankAlert]:
+    def get_all_alerts(self, min_severity: Optional[CrossBankAlertSeverity] = None) -> list[CrossBankAlert]:
         """Get all cross-bank alerts, optionally filtered by severity."""
         if min_severity is None:
             return list(self._alerts)

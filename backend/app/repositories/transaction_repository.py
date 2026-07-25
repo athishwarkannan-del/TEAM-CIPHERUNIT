@@ -4,9 +4,12 @@ MuleTrace AI — Transaction Repository.
 Handles database access operations for Transaction entities.
 """
 
+from __future__ import annotations
+
+
 import uuid
 from datetime import datetime
-from typing import Sequence
+from typing import Optional, Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,13 +22,13 @@ class TransactionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, transaction_id: uuid.UUID) -> Transaction | None:
+    async def get_by_id(self, transaction_id: uuid.UUID) -> Optional[Transaction]:
         """Fetch transaction by UUID."""
         stmt = select(Transaction).where(Transaction.id == transaction_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_ref(self, transaction_ref: str) -> Transaction | None:
+    async def get_by_ref(self, transaction_ref: str) -> Optional[Transaction]:
         """Fetch transaction by reference UTR."""
         stmt = select(Transaction).where(Transaction.transaction_ref == transaction_ref)
         result = await self.session.execute(stmt)
@@ -35,13 +38,13 @@ class TransactionRepository:
         self,
         skip: int = 0,
         limit: int = 20,
-        channel: str | None = None,
-        min_amount: float | None = None,
-        max_amount: float | None = None,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        sender_account_id: uuid.UUID | None = None,
-        receiver_account_id: uuid.UUID | None = None,
+        channel: Optional[str] = None,
+        min_amount: Optional[float] = None,
+        max_amount: Optional[float] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        sender_account_id: Optional[uuid.UUID] = None,
+        receiver_account_id: Optional[uuid.UUID] = None,
     ) -> Sequence[Transaction]:
         """Fetch paginated transactions matching filter criteria."""
         stmt = select(Transaction)
@@ -67,13 +70,13 @@ class TransactionRepository:
 
     async def count(
         self,
-        channel: str | None = None,
-        min_amount: float | None = None,
-        max_amount: float | None = None,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        sender_account_id: uuid.UUID | None = None,
-        receiver_account_id: uuid.UUID | None = None,
+        channel: Optional[str] = None,
+        min_amount: Optional[float] = None,
+        max_amount: Optional[float] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        sender_account_id: Optional[uuid.UUID] = None,
+        receiver_account_id: Optional[uuid.UUID] = None,
     ) -> int:
         """Count total transactions matching filters."""
         stmt = select(func.count(Transaction.id))

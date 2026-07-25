@@ -5,6 +5,9 @@ Represents Automated Teller Machines (ATMs).
 Used for cash-out tracking and geographic analysis.
 """
 
+from __future__ import annotations
+
+
 from sqlalchemy import Float, String
 from sqlalchemy.orm import Mapped, mapped_column
 

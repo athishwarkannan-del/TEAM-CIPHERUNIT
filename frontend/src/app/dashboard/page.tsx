@@ -131,10 +131,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboard().then((res) => {
-      setData(res.data);
-      setLoading(false);
-    });
+    fetchDashboard()
+      .then((res) => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading || !data) {

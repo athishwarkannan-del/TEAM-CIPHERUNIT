@@ -4,6 +4,9 @@ MuleTrace AI — Logging Middleware.
 Intercepts HTTP traffic and logs method, path, response status, latency, and request ID.
 """
 
+from __future__ import annotations
+
+
 import logging
 import time
 from fastapi import Request, Response

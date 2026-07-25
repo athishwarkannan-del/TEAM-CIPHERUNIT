@@ -4,6 +4,9 @@ MuleTrace AI — Geo Intelligence Endpoints.
 API endpoints for geographic analysis and impossible travel detection.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter
 from app.schemas.common import BaseResponse
 

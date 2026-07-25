@@ -5,6 +5,9 @@ FastAPI dependency providers for Repositories and Services.
 Constructs service instances per-request with injected AsyncSession database handles.
 """
 
+from __future__ import annotations
+
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -86,3 +89,10 @@ def get_report_service(
     report_repo: ReportRepository = Depends(get_report_repository),
 ) -> ReportService:
     return ReportService(report_repo=report_repo)
+
+
+def get_victim_complaint_service(
+    report_repo: ReportRepository = Depends(get_report_repository),
+) -> "VictimComplaintService":
+    from app.services.victim_complaint_service import VictimComplaintService
+    return VictimComplaintService(report_repo=report_repo)

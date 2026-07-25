@@ -4,6 +4,9 @@ MuleTrace AI — Analytics Endpoints.
 API endpoints for financial crime visual analytics.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter, Depends
 from app.api.dependencies import get_analytics_service
 from app.schemas.analytics import AnalyticsOverviewResponse

@@ -10,8 +10,11 @@ Usage:
     print(settings.APP_NAME)
 """
 
+from __future__ import annotations
+
+
 from pathlib import Path
-from typing import Any
+from typing import Optional, Any
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -46,9 +49,9 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # PostgreSQL (Supabase / Managed / Local)
     # -------------------------------------------------------------------------
-    DATABASE_URL: str | None = None
-    DIRECT_URL: str | None = None
-    DATABASE_URL_SYNC: str | None = None
+    DATABASE_URL: Optional[str] = None
+    DIRECT_URL: Optional[str] = None
+    DATABASE_URL_SYNC: Optional[str] = None
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "muletrace_db"
@@ -67,7 +70,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # CORS
     # -------------------------------------------------------------------------
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]
 
     # -------------------------------------------------------------------------
     # Logging

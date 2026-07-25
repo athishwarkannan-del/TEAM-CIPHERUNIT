@@ -5,6 +5,10 @@ Represents financial transactions across channels (UPI, NEFT, IMPS, RTGS).
 Stores amounts, channels, timestamps, sender/receiver references, and risk indicators.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 
@@ -55,34 +59,34 @@ class Transaction(Base, TimestampMixin):
         index=True,
         comment="Transaction execution timestamp",
     )
-    location_city: Mapped[str | None] = mapped_column(
+    location_city: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         index=True,
         comment="Transaction origination city",
     )
-    location_state: Mapped[str | None] = mapped_column(
+    location_state: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         comment="Transaction origination state",
     )
-    latitude: Mapped[float | None] = mapped_column(
+    latitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Geo latitude",
     )
-    longitude: Mapped[float | None] = mapped_column(
+    longitude: Mapped[Optional[float]] = mapped_column(
         Float,
         nullable=True,
         comment="Geo longitude",
     )
-    ip_address_str: Mapped[str | None] = mapped_column(
+    ip_address_str: Mapped[Optional[str]] = mapped_column(
         String(45),
         nullable=True,
         index=True,
         comment="IP address string at time of transaction",
     )
-    device_fingerprint: Mapped[str | None] = mapped_column(
+    device_fingerprint: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         index=True,
@@ -95,13 +99,13 @@ class Transaction(Base, TimestampMixin):
         index=True,
         comment="Transaction-level risk score (0-100)",
     )
-    flagged_pattern: Mapped[str | None] = mapped_column(
+    flagged_pattern: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
         index=True,
         comment="Detected pattern name (e.g. Mule Chain, Fan In)",
     )
-    narrative: Mapped[str | None] = mapped_column(
+    narrative: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Transaction description or remarks",

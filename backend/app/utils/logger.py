@@ -4,6 +4,9 @@ MuleTrace AI — Logger Utility.
 Provides helper for getting named logger instances.
 """
 
+from __future__ import annotations
+
+
 import logging
 
 

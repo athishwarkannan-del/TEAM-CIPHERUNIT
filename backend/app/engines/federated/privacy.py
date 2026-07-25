@@ -17,6 +17,7 @@ References:
 """
 
 from __future__ import annotations
+from typing import Optional
 
 import hashlib
 import logging
@@ -185,7 +186,7 @@ class SecureAggregationEngine:
         self,
         bank_id: str,
         weight_shapes: dict[str, tuple[int, ...]],
-        seed: int | None = None,
+        seed: Optional[int] = None,
     ) -> dict[str, list[list[float]]]:
         """Generate a random additive mask for a bank's weight matrices.
 
@@ -239,7 +240,7 @@ class SecureAggregationEngine:
             result[layer_name] = arr.tolist()
         return result
 
-    def clear_masks(self, bank_ids: list[str] | None = None) -> None:
+    def clear_masks(self, bank_ids: Optional[list[str]] = None) -> None:
         """Clear stored masks after a round completes."""
         if bank_ids:
             for bid in bank_ids:

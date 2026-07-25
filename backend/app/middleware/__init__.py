@@ -4,6 +4,9 @@ MuleTrace AI — Middleware Package.
 Exports middleware components and exception registration helpers.
 """
 
+from __future__ import annotations
+
+
 from app.middleware.cors import setup_cors
 from app.middleware.exception_handler import register_exception_handlers
 from app.middleware.logging import LoggingMiddleware

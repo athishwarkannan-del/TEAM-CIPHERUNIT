@@ -5,6 +5,9 @@ Provides feature extraction, frequency encoding, one-hot encoding, and scaling
 transformations for ML inference and model training.
 """
 
+from __future__ import annotations
+
+
 from typing import Any
 import numpy as np
 import pandas as pd

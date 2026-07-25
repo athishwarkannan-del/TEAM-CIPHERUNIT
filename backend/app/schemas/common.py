@@ -5,7 +5,10 @@ Defines reusable API response envelopes, pagination models, and standard error s
 Uses Pydantic v2 standards.
 """
 
-from typing import Any, Generic, TypeVar
+from __future__ import annotations
+
+
+from typing import Optional, Any, Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
@@ -18,7 +21,7 @@ class BaseResponse(BaseModel, Generic[T]):
 
     success: bool = Field(default=True, description="Indicates if request succeeded")
     message: str = Field(default="Operation completed successfully", description="Status message")
-    data: T | None = Field(default=None, description="Response payload")
+    data: Optional[T] = Field(default=None, description="Response payload")
 
 
 class PaginationParams(BaseModel):
@@ -62,4 +65,4 @@ class ErrorResponse(BaseModel):
     success: bool = False
     message: str = Field(..., description="High-level error summary")
     error_code: str = Field(default="INTERNAL_ERROR", description="Machine-readable error code")
-    details: list[ErrorDetail] | None = Field(default=None, description="Field-level errors if any")
+    details: Optional[list[ErrorDetail]] = Field(default=None, description="Field-level errors if any")

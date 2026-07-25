@@ -9,3 +9,6 @@ Usage:
     from app.config.logging import configure_logging
     from app.config.constants import API_V1_PREFIX
 """
+
+from __future__ import annotations
+

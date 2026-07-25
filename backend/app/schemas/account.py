@@ -4,6 +4,10 @@ MuleTrace AI — Account Schemas.
 Pydantic schemas for Account data validation, creation, update, and response serialization.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,20 +27,20 @@ class AccountBase(BaseModel):
 class AccountCreate(AccountBase):
     """Payload for creating an account."""
 
-    branch_id: uuid.UUID | None = Field(default=None, description="Home branch UUID")
-    opened_at: datetime | None = Field(default=None, description="Opening date")
+    branch_id: Optional[uuid.UUID] = Field(default=None, description="Home branch UUID")
+    opened_at: Optional[datetime] = Field(default=None, description="Opening date")
 
 
 class AccountUpdate(BaseModel):
     """Payload for updating an account."""
 
-    customer_name: str | None = None
-    account_type: str | None = None
-    balance: float | None = None
-    risk_score: int | None = Field(default=None, ge=0, le=100)
-    risk_level: str | None = None
-    is_flagged_mule: bool | None = None
-    status: str | None = None
+    customer_name: Optional[str] = None
+    account_type: Optional[str] = None
+    balance: Optional[float] = None
+    risk_score: Optional[int] = Field(default=None, ge=0, le=100)
+    risk_level: Optional[str] = None
+    is_flagged_mule: Optional[bool] = None
+    status: Optional[str] = None
 
 
 class AccountRead(AccountBase):
@@ -48,8 +52,8 @@ class AccountRead(AccountBase):
     risk_score: int = Field(ge=0, le=100)
     risk_level: str
     is_flagged_mule: bool
-    branch_id: uuid.UUID | None = None
-    opened_at: datetime | None = None
+    branch_id: Optional[uuid.UUID] = None
+    opened_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     status: str

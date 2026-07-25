@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -76,7 +76,7 @@ class RegisteredBankInfo(BaseModel):
     bank_name: str
     status: BankStatus
     registered_at: datetime
-    last_contribution_at: datetime | None = None
+    last_contribution_at: Optional[datetime] = None
     total_rounds_participated: int = 0
     local_account_count: int = 0
     local_transaction_count: int = 0
@@ -125,7 +125,7 @@ class TrainingRoundInfo(BaseModel):
     round_number: int
     status: TrainingRoundStatus
     initiated_at: datetime
-    completed_at: datetime | None = None
+    completed_at: Optional[datetime] = None
     participating_banks: list[str] = Field(default_factory=list)
     total_samples: int = 0
     aggregated_loss: float = 0.0
@@ -212,7 +212,7 @@ class FederatedPlatformStatus(BaseModel):
     registered_banks: int
     active_banks: int
     total_training_rounds: int
-    current_round: TrainingRoundInfo | None = None
+    current_round: Optional[TrainingRoundInfo] = None
     global_model_version: str
     total_cross_bank_alerts: int
     total_privacy_budget_consumed: float

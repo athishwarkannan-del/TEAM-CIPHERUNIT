@@ -4,6 +4,10 @@ MuleTrace AI — Transactions Endpoints.
 API endpoints for searching, retrieving, and recording cross-channel transactions.
 """
 
+from __future__ import annotations
+from typing import Optional
+
+
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.dependencies import get_transaction_service
@@ -18,11 +22,11 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 async def list_transactions(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    channel: str | None = Query(default=None),
-    min_amount: float | None = Query(default=None),
-    max_amount: float | None = Query(default=None),
-    sender_account_id: uuid.UUID | None = Query(default=None),
-    receiver_account_id: uuid.UUID | None = Query(default=None),
+    channel: Optional[str] = Query(default=None),
+    min_amount: Optional[float] = Query(default=None),
+    max_amount: Optional[float] = Query(default=None),
+    sender_account_id: Optional[uuid.UUID] = Query(default=None),
+    receiver_account_id: Optional[uuid.UUID] = Query(default=None),
     service: TransactionService = Depends(get_transaction_service),
 ) -> PaginatedResponse[TransactionRead]:
     """Search and filter transactions across payment channels (UPI, NEFT, IMPS, RTGS)."""

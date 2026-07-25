@@ -4,6 +4,9 @@ MuleTrace AI — Graph Intelligence Endpoints.
 API endpoints for Neo4j transaction graph visualization and node relationship tracing.
 """
 
+from __future__ import annotations
+
+
 from fastapi import APIRouter
 from app.schemas.common import BaseResponse
 

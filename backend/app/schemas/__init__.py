@@ -4,6 +4,9 @@ MuleTrace AI — Schemas Package.
 Exports all Pydantic v2 schemas for API validation and serialization.
 """
 
+from __future__ import annotations
+
+
 from app.schemas.account import (
     AccountCreate,
     AccountRead,

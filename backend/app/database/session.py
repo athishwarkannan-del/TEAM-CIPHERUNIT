@@ -18,13 +18,16 @@ Usage:
     from app.database.session import get_db, get_neo4j_session
 """
 
+from __future__ import annotations
+
+
 import logging
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.neo4j import neo4j_manager
-from app.database.postgres import async_session_factory
+from app.database import postgres as pg
 
 logger = logging.getLogger("app.database.session")
 
@@ -52,14 +55,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         async def list_accounts(db: AsyncSession = Depends(get_db)):
             ...
     """
-    if async_session_factory is None:
+    if pg.async_session_factory is None:
         msg = (
             "Database session factory is not initialized. "
             "Ensure init_engine() was called during application startup."
         )
         raise RuntimeError(msg)
 
-    session = async_session_factory()
+    session = pg.async_session_factory()
     try:
         yield session
     except Exception:

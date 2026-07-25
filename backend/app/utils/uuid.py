@@ -4,6 +4,9 @@ MuleTrace AI — UUID Helper Utilities.
 Functions for UUID v4 generation, validation, and short reference formatting.
 """
 
+from __future__ import annotations
+
+
 import uuid
 
 
