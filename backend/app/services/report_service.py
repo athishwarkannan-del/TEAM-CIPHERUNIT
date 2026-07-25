@@ -9,6 +9,7 @@ from typing import Optional
 
 
 import uuid
+from datetime import datetime, timezone
 from app.models.report import Report
 from app.repositories.report_repository import ReportRepository
 from app.schemas.common import PaginatedResponse, PaginationMeta
@@ -78,6 +79,7 @@ class ReportService:
             case_id=payload.case_id,
             file_path=f"/exports/reports/{report_num}.pdf",
             summary_text=summary,
+            generated_at=datetime.now(timezone.utc),
         )
         created = await self.report_repo.create(report_obj)
         return ReportRead.model_validate(created)

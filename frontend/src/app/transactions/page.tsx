@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Search, Filter, X, Eye, Wifi, Smartphone, MapPin as MapPinIcon } from "lucide-react";
-import { fetchTransactions } from "@/lib/api";
-import type { TransactionRead, PaginationMeta } from "@/lib/types";
+import { useTransactions } from "@/hooks/useTransactions";
+import type { TransactionRead } from "@/lib/types";
 import { formatCurrency, formatDateTime, cn, getChannelColor, getRiskBg } from "@/lib/utils";
 
 // -----------------------------------------------------------------------------
@@ -127,29 +127,15 @@ function TransactionInspector({
 // Transactions Page
 // -----------------------------------------------------------------------------
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<TransactionRead[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<TransactionRead | null>(null);
   const [channelFilter, setChannelFilter] = useState("");
   const [searchRef, setSearchRef] = useState("");
 
-  useEffect(() => {
-    setLoading(true);
-    fetchTransactions({
-      page: 1,
-      page_size: 20,
-      channel: channelFilter || undefined,
-    })
-      .then((res) => {
-        setTransactions(res.data);
-        setPagination(res.pagination);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [channelFilter]);
+  const { transactions, pagination, loading, isLive } = useTransactions({
+    page: 1,
+    page_size: 50,
+    channel: channelFilter || undefined,
+  });
 
   const filtered = searchRef
     ? transactions.filter((t) => t.transaction_ref.toLowerCase().includes(searchRef.toLowerCase()))
@@ -157,8 +143,18 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="page-header">
+      <div className="page-header flex justify-between items-start">
         <p className="page-subtitle">Search, filter, and inspect cross-channel transactions with risk intelligence</p>
+        <div className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+          isLive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+        )}>
+          <span className="relative flex h-1.5 w-1.5">
+            {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+            <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isLive ? "bg-emerald-500" : "bg-slate-500")}></span>
+          </span>
+          {isLive ? "LIVE" : "OFFLINE / MOCK"}
+        </div>
       </div>
 
       {/* Filter Bar */}

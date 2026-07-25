@@ -250,16 +250,36 @@ export interface GeoIntelligenceResponse {
 // Investigations
 // -----------------------------------------------------------------------------
 export interface InvestigationCase {
+  id?: string;
   case_number: string;
   title: string;
   priority: string;
   case_status: string;
   assigned_investigator_id: string;
   alerts_count: number;
+  created_at?: string;
+  updated_at?: string;
+  description?: string;
+  evidence_summary?: string;
+}
+
+export interface CaseTimeline {
+  id: string;
+  case_id: string;
+  event: string;
+  date: string;
+  created_by?: string;
+}
+
+export interface CaseEvidence {
+  accounts: string[];
+  total_volume: string;
+  alerts: number;
+  timeline: { date: string; event: string }[];
 }
 
 // -----------------------------------------------------------------------------
-// Reports
+// Reports & Victim Complaints
 // -----------------------------------------------------------------------------
 export interface ReportRead {
   id: string;
@@ -282,6 +302,35 @@ export interface ReportGenerateRequest {
   summary_notes?: string;
 }
 
+// Victim Complaint (Client Portal → Admin Portal)
+export interface VictimComplaintSubmit {
+  victim_name: string;
+  victim_email: string;
+  victim_phone?: string | null;
+  transaction_id?: string | null;
+  incident_type: string;
+  amount_lost?: number | null;
+  incident_date?: string | null;
+  description: string;
+}
+
+export interface VictimComplaintResponse {
+  success: boolean;
+  complaint_number: string;
+  message: string;
+  status: string;
+  submitted_at: string;
+}
+
+export interface ComplaintStatusResponse {
+  success: boolean;
+  complaint_number: string;
+  status: string;
+  submitted_at: string;
+  last_updated: string;
+  message?: string;
+}
+
 // -----------------------------------------------------------------------------
 // Enums / Constants
 // -----------------------------------------------------------------------------
@@ -289,6 +338,16 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Channel = 'UPI' | 'NEFT' | 'IMPS' | 'RTGS';
 export type AlertStatus = 'NEW' | 'UNDER_INVESTIGATION' | 'ESCALATED' | 'CLOSED_FALSE_POSITIVE' | 'CLOSED_CONFIRMED';
-export type ReportType = 'STR' | 'CTR' | 'CYBERCRIME_SUMMARY' | 'EXECUTIVE_BRIEF';
+export type ReportType = 'STR' | 'CTR' | 'CYBERCRIME_SUMMARY' | 'EXECUTIVE_BRIEF' | 'VICTIM_COMPLAINT';
 export type CasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type CaseStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED' | 'ARCHIVED';
+export type IncidentType =
+  | 'UPI_FRAUD'
+  | 'PHISHING'
+  | 'ACCOUNT_TAKEOVER'
+  | 'INVESTMENT_SCAM'
+  | 'LOAN_FRAUD'
+  | 'KYC_FRAUD'
+  | 'ROMANCE_SCAM'
+  | 'CYBER_CRIME'
+  | 'OTHER';

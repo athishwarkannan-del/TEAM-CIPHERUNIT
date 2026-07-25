@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Filter, X, CheckCircle, AlertTriangle, Clock, ArrowUpCircle } from "lucide-react";
-import { fetchAlerts, triageAlert } from "@/lib/api";
-import type { AlertRead, PaginationMeta } from "@/lib/types";
+import { useAlerts } from "@/hooks/useAlerts";
+import type { AlertRead } from "@/lib/types";
 import { formatTimeAgo, cn, getRiskBg, getStatusColor } from "@/lib/utils";
 
 // -----------------------------------------------------------------------------
@@ -114,41 +114,41 @@ function TriageModal({
 // Alerts Page
 // -----------------------------------------------------------------------------
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<AlertRead[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
   const [triageTarget, setTriageTarget] = useState<AlertRead | null>(null);
   const [severityFilter, setSeverityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const loadAlerts = React.useCallback(() => {
-    setLoading(true);
-    fetchAlerts({
-      severity: severityFilter || undefined,
-      alert_status: statusFilter || undefined,
-    }).then((res) => {
-      setAlerts(res.data);
-      setPagination(res.pagination);
-      setLoading(false);
-    });
-  }, [severityFilter, statusFilter]);
-
-  useEffect(() => {
-    loadAlerts();
-  }, [loadAlerts]);
+  const { alerts, pagination, loading, triage, triaging, isLive } = useAlerts({
+    severity: severityFilter || undefined,
+    alert_status: statusFilter || undefined,
+  });
 
   const handleTriage = async (id: string, status: string, notes: string) => {
-    await triageAlert(id, { alert_status: status, notes });
-    setTriageTarget(null);
-    loadAlerts();
+    try {
+      await triage(id, { alert_status: status, notes });
+      setTriageTarget(null);
+    } catch (err) {
+      console.error("Failed to triage:", err);
+      // In a real app, show a toast notification here
+    }
   };
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="page-header">
+      <div className="page-header flex justify-between items-start">
         <p className="page-subtitle">
           Manage and triage suspicious activity alerts with severity-based prioritization
         </p>
+        <div className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+          isLive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+        )}>
+          <span className="relative flex h-1.5 w-1.5">
+            {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+            <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isLive ? "bg-emerald-500" : "bg-slate-500")}></span>
+          </span>
+          {isLive ? "LIVE" : "OFFLINE / MOCK"}
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -255,9 +255,15 @@ export default function AlertsPage() {
                     <td>
                       <button
                         onClick={() => setTriageTarget(alert)}
-                        className="rounded-lg border border-navy-600 bg-navy-800 px-3 py-1 text-xs text-accent-glow hover:bg-accent/10 transition-colors"
+                        disabled={triaging === alert.id}
+                        className={cn(
+                          "rounded-lg border px-3 py-1 text-xs transition-colors",
+                          triaging === alert.id
+                            ? "border-navy-600 bg-navy-700 text-slate-400 cursor-not-allowed"
+                            : "border-navy-600 bg-navy-800 text-accent-glow hover:bg-accent/10"
+                        )}
                       >
-                        Triage
+                        {triaging === alert.id ? "Updating..." : "Triage"}
                       </button>
                     </td>
                   </tr>

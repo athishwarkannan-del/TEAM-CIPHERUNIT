@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   FileText,
   Plus,
@@ -21,9 +21,11 @@ import {
   MessageSquareWarning,
   ClipboardList,
 } from "lucide-react";
-import { fetchReports, generateReport, fetchTransactions } from "@/lib/api";
-import type { ReportRead } from "@/lib/types";
+import { fetchGraphTrace } from "@/lib/api";
+import { useReports } from "@/hooks/useReports";
+import type { ReportRead, ReportGenerateRequest } from "@/lib/types";
 import { formatDate, cn, getStatusColor } from "@/lib/utils";
+import { jsPDF } from "jspdf";
 
 // -----------------------------------------------------------------------------
 // Helper: Parse complaint JSON from summary_text
@@ -63,37 +65,40 @@ function parseComplaintData(summaryText: string | null): (ComplaintData & { disp
 function ComplaintDetailModal({
   report,
   onClose,
-  onReportGenerated,
+  onGenerate,
 }: {
   report: ReportRead;
   onClose: () => void;
-  onReportGenerated: (r: ReportRead) => void;
+  onGenerate: (payload: ReportGenerateRequest) => Promise<ReportRead | null>;
 }) {
   const complaint = parseComplaintData(report.summary_text);
   const [generating, setGenerating] = useState(false);
 
   const handleGenerateReport = async () => {
+    if (!complaint?.transaction_id) {
+      alert("No transaction ID provided in this complaint.");
+      return;
+    }
+
     setGenerating(true);
     try {
-      // Analyze dataset correlation
-      const txRes = await fetchTransactions({ page_size: 50 }).catch(() => null);
-      const matchedTx = txRes?.data?.find(
-        (t) =>
-          t.transaction_ref?.toLowerCase() === complaint?.transaction_id?.toLowerCase() ||
-          t.id?.toLowerCase() === complaint?.transaction_id?.toLowerCase()
-      );
+      // Analyze dataset correlation using Deep Graph Tracing
+      const traceRes = await fetchGraphTrace(complaint.transaction_id).catch(() => null);
 
-      const datasetContext = matchedTx
-        ? `\n\n[DATASET CORRELATION MATCH FOUND]\n- Matched UTR: ${matchedTx.transaction_ref}\n- Channel: ${matchedTx.channel}\n- Amount: ₹${matchedTx.amount.toLocaleString("en-IN")}\n- Sender ID: ${matchedTx.sender_account_id}\n- Receiver ID: ${matchedTx.receiver_account_id}\n- System Flag Status: ${matchedTx.risk_score >= 75 || matchedTx.flagged_pattern ? "FLAGGED SUSPICIOUS MULE" : "UNFLAGGED"}`
-        : `\n\n[DATASET ANALYSIS & PATTERN CORRELATION]\n- Searched UTR: ${complaint?.transaction_id || "N/A"}\n- Risk Analysis: Transaction matches high-velocity UPI/IMPS fan-out pattern in active Mule Ring (Community A12).\n- Recommended FIU Action: Freeze destination account & issue LEA cybercrime notice.`;
+      if (!traceRes || !traceRes.success) {
+        alert("Not applicable or not valid \u2014 Transaction ID not found in dataset.");
+        setGenerating(false);
+        return;
+      }
 
-      const res = await generateReport({
+      const datasetContext = `\n\n[DEEP GRAPH ANALYSIS]\n- Searched UTR: ${complaint.transaction_id}\n- Result: ${traceRes.data.path_summary}`;
+
+      await onGenerate({
         report_type: "CYBERCRIME_SUMMARY",
-        title: `Investigation Report — ${report.report_number} — ${complaint?.victim_name || "Unknown"}`,
-        summary_notes: `AUTO-ANALYZED INVESTIGATION REPORT\nComplaint Ref: ${report.report_number}\nIncident Date: ${complaint?.display_date || "N/A"}\nVictim Name: ${complaint?.victim_name || "N/A"}\nIncident Category: ${complaint?.incident_type || "N/A"}\nReported Amount Lost: ₹${complaint?.amount_lost?.toLocaleString("en-IN") || "N/A"}\nVictim Description: ${complaint?.description || "N/A"}${datasetContext}`,
+        title: `Investigation Report \u2014 ${report.report_number} \u2014 ${complaint?.victim_name || "Unknown"}`,
+        summary_notes: `AUTO-ANALYZED INVESTIGATION REPORT\nComplaint Ref: ${report.report_number}\nIncident Date: ${complaint?.display_date || "N/A"}\nVictim Name: ${complaint?.victim_name || "N/A"}\nIncident Category: ${complaint?.incident_type || "N/A"}\nReported Amount Lost: \u20b9${complaint?.amount_lost?.toLocaleString("en-IN") || "N/A"}\nVictim Description: ${complaint?.description || "N/A"}${datasetContext}`,
         include_graph_visualization: true,
       });
-      if (res.data) onReportGenerated(res.data);
     } catch (err) {
       console.error("Failed to generate report:", err);
     }
@@ -195,12 +200,13 @@ function ComplaintDetailModal({
 // -----------------------------------------------------------------------------
 // Report Generator Modal (existing)
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 function ReportGeneratorModal({
   onClose,
   onGenerate,
 }: {
   onClose: () => void;
-  onGenerate: (report: ReportRead) => void;
+  onGenerate: (payload: ReportGenerateRequest) => Promise<ReportRead | null>;
 }) {
   const [reportType, setReportType] = useState("STR");
   const [title, setTitle] = useState("");
@@ -217,13 +223,12 @@ function ReportGeneratorModal({
   const handleGenerate = async () => {
     if (!title.trim()) return;
     setGenerating(true);
-    const res = await generateReport({
+    await onGenerate({
       report_type: reportType,
       title,
       summary_notes: notes || undefined,
       include_graph_visualization: true,
     });
-    if (res.data) onGenerate(res.data);
     setGenerating(false);
     onClose();
   };
@@ -389,43 +394,89 @@ function ComplaintCard({
 // Reports Page
 // -----------------------------------------------------------------------------
 export default function ReportsPage() {
-  const [reports, setReports] = useState<ReportRead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
   const [typeFilter, setTypeFilter] = useState("");
   const [selectedComplaint, setSelectedComplaint] = useState<ReportRead | null>(null);
 
-  const loadReports = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
-    fetchReports({ report_type: typeFilter || undefined })
-      .then((res) => {
-        setReports(res.data || []);
-        if (!silent) setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch reports:", err);
-        if (!silent) setLoading(false);
-      });
-  }, [typeFilter]);
+  const {
+    victimComplaints,
+    generatedReports,
+    loading,
+    refetch,
+    generate,
+    isLive,
+    newComplaintCount,
+  } = useReports(typeFilter);
 
-  useEffect(() => {
-    loadReports();
+  const handleDownloadPdf = (report: ReportRead) => {
+    try {
+      const doc = new jsPDF();
+      
+      // Title Header
+      doc.setFontSize(22);
+      doc.setTextColor(30, 58, 138); // Navy blue
+      doc.text("OFFICIAL INVESTIGATION REPORT", 20, 20);
+      
+      // Meta Data Section
+      doc.setFontSize(11);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Report Title: ${report.title || "Cybercrime Summary"}`, 20, 32);
+      doc.text(`Report Tracking ID: ${report.report_number}`, 20, 38);
+      doc.text(`Generation Date: ${formatDate(report.generated_at)}`, 20, 44);
+      doc.text(`Case Status: ${report.status}`, 20, 50);
+      
+      // Line separator
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, 56, 190, 56);
+      
+      let currentY = 66;
 
-    // Poll every 5 seconds for real-time updates
-    const intervalId = setInterval(() => {
-      loadReports(true);
-    }, 5000);
+      // Executive Summary
+      if (report.summary_text) {
+        doc.setFontSize(14);
+        doc.setTextColor(30, 58, 138);
+        doc.text("Detailed Analysis & Executive Summary", 20, currentY);
+        currentY += 8;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(40, 40, 40);
+        // Word wrap the summary text to fit the page width
+        const splitText = doc.splitTextToSize(report.summary_text, 170);
+        doc.text(splitText, 20, currentY);
+        currentY += (splitText.length * 5) + 15;
+      }
 
-    return () => clearInterval(intervalId);
-  }, [loadReports]);
-
-  const handleGenerated = (newReport: ReportRead) => {
-    setReports((prev) => [newReport, ...prev]);
+      // Actionable Advice Section
+      doc.setDrawColor(220, 220, 220);
+      doc.line(20, currentY - 5, 190, currentY - 5);
+      
+      doc.setFontSize(14);
+      doc.setTextColor(220, 38, 38); // Red emphasis
+      doc.text("Next Steps & Actionable Advice", 20, currentY + 5);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      const adviceText = "You can save your money and assist in the recovery of stolen funds by giving this detailed report to higher officials like the Police, CBI, or FIU-IND. We strongly recommend filing this exact document with your local Cybercrime Station or through the National Cyber Crime Reporting Portal. Providing this deep-traced evidence drastically increases the chances of freezing the destination accounts and recovering your assets.";
+      
+      const splitAdvice = doc.splitTextToSize(adviceText, 170);
+      doc.text(splitAdvice, 20, currentY + 13);
+      
+      doc.save(`${report.report_number}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF locally.");
+    }
   };
 
-  // Separate victim complaints from generated reports
-  const victimComplaints = reports.filter((r) => r.report_type === "VICTIM_COMPLAINT");
-  const generatedReports = reports.filter((r) => r.report_type !== "VICTIM_COMPLAINT");
+  const handleDownloadJson = (report: ReportRead) => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
+    const dlAnchorElem = document.createElement("a");
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `${report.report_number}.json`);
+    document.body.appendChild(dlAnchorElem);
+    dlAnchorElem.click();
+    document.body.removeChild(dlAnchorElem);
+  };
 
   const reportTypeColor: Record<string, string> = {
     STR: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -454,7 +505,7 @@ export default function ReportsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => loadReports()}
+            onClick={() => refetch()}
             className="flex items-center gap-1.5 rounded-lg border border-navy-600 bg-navy-800 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-navy-700 transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -471,9 +522,10 @@ export default function ReportsPage() {
       </div>
 
       {/* Filter */}
-      <div className="glass-card flex items-center gap-3 p-4">
-        <span className="text-xs text-slate-500">Type:</span>
-        {filterTypes.map((ft) => (
+      <div className="glass-card flex items-center justify-between p-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500">Type:</span>
+          {filterTypes.map((ft) => (
           <button
             key={ft.value}
             onClick={() => setTypeFilter(ft.value)}
@@ -492,6 +544,18 @@ export default function ReportsPage() {
             )}
           </button>
         ))}
+        </div>
+        
+        <div className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+          isLive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+        )}>
+          <span className="relative flex h-1.5 w-1.5">
+            {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+            <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isLive ? "bg-emerald-500" : "bg-slate-500")}></span>
+          </span>
+          {isLive ? "LIVE" : "OFFLINE / MOCK"}
+        </div>
       </div>
 
       {loading ? (
@@ -501,8 +565,8 @@ export default function ReportsPage() {
       ) : (
         <>
           {/* ── Victim Complaints Section ── */}
-          {(typeFilter === "" || typeFilter === "VICTIM_COMPLAINT") && victimComplaints.length > 0 && (
-            <div>
+          {(typeFilter === "" || typeFilter === "VICTIM_COMPLAINT") && (
+            <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <ClipboardList className="h-4 w-4 text-emerald-400" />
                 <h2 className="text-sm font-semibold text-white">
@@ -518,16 +582,28 @@ export default function ReportsPage() {
                   </span>
                   <span className="text-[10px] text-emerald-400/70">Live from User Portal</span>
                 </div>
+                {newComplaintCount > 0 && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                    +{newComplaintCount} new since last view
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {victimComplaints.map((report) => (
-                  <ComplaintCard
-                    key={report.id}
-                    report={report}
-                    onView={() => setSelectedComplaint(report)}
-                  />
-                ))}
-              </div>
+              
+              {victimComplaints.length === 0 ? (
+                <div className="glass-card p-10 text-center text-sm text-slate-500 border border-dashed border-emerald-500/20">
+                  No victim complaints have been received yet from the User Portal.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {victimComplaints.map((report) => (
+                    <ComplaintCard
+                      key={report.id}
+                      report={report}
+                      onView={() => setSelectedComplaint(report)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -581,11 +657,17 @@ export default function ReportsPage() {
                           <td>
                             <div className="flex items-center gap-1">
                               {report.file_path && (
-                                <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
+                                <button
+                                  onClick={() => handleDownloadPdf(report)}
+                                  className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700"
+                                >
                                   <Download className="h-3 w-3" /> PDF
                                 </button>
                               )}
-                              <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
+                              <button
+                                onClick={() => handleDownloadJson(report)}
+                                className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700"
+                              >
                                 <FileJson className="h-3 w-3" /> JSON
                               </button>
                             </div>
@@ -606,7 +688,7 @@ export default function ReportsPage() {
         <ComplaintDetailModal
           report={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
-          onReportGenerated={handleGenerated}
+          onGenerate={generate}
         />
       )}
 
@@ -614,7 +696,7 @@ export default function ReportsPage() {
       {showGenerator && (
         <ReportGeneratorModal
           onClose={() => setShowGenerator(false)}
-          onGenerate={handleGenerated}
+          onGenerate={generate}
         />
       )}
     </div>

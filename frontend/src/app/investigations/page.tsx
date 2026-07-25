@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Briefcase,
   AlertTriangle,
@@ -8,8 +8,7 @@ import {
   Clock,
   Shield,
 } from "lucide-react";
-import { fetchInvestigations } from "@/lib/api";
-import type { InvestigationCase } from "@/lib/types";
+import { useInvestigations } from "@/hooks/useInvestigations";
 import { cn, getRiskBg, getStatusColor } from "@/lib/utils";
 
 // Mock evidence linked to cases
@@ -37,20 +36,8 @@ const caseEvidence: Record<string, { accounts: string[]; total_volume: string; a
 };
 
 export default function InvestigationsPage() {
-  const [cases, setCases] = useState<InvestigationCase[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { cases, loading, isLive } = useInvestigations();
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchInvestigations()
-      .then((res) => {
-        if (res.data) setCases(res.data.cases);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, []);
 
   if (loading) {
     return (
@@ -67,10 +54,20 @@ export default function InvestigationsPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="page-header">
+      <div className="page-header flex justify-between items-start">
         <p className="page-subtitle">
           Active investigation cases, evidence boards, and linked alert timelines
         </p>
+        <div className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+          isLive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+        )}>
+          <span className="relative flex h-1.5 w-1.5">
+            {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+            <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isLive ? "bg-emerald-500" : "bg-slate-500")}></span>
+          </span>
+          {isLive ? "LIVE" : "OFFLINE / MOCK"}
+        </div>
       </div>
 
       {/* Case Cards Grid */}
