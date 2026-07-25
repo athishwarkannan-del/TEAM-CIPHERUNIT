@@ -1402,6 +1402,6 @@ the Free Software Foundation, either version 3 of the License, or
 │ 👤 Karmugilan R    → Graph Intelligence                      │
 │ 👤 Sanjay B        → Frontend                                │
 │ 👤 Siva            → UI/UX Design                            │
-│ 👤 Sakthi Prakash  → Frontend                                │
+│ 👤 Sakthi Prakash  → Frontend for the admine portel          │
 └──────────────────────────────────────────────────────────────┘
 ```
