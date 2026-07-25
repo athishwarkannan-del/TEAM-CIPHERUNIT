@@ -135,7 +135,7 @@ export default function AlertsPage() {
 
   useEffect(() => {
     loadAlerts();
-  }, [severityFilter, statusFilter]);
+  }, [loadAlerts]);
 
   const handleTriage = async (id: string, status: string, notes: string) => {
     await triageAlert(id, { alert_status: status, notes });

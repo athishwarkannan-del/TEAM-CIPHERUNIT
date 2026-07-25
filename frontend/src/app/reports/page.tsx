@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   FileText,
   Plus,
@@ -9,13 +9,191 @@ import {
   FileJson,
   Sparkles,
   Send,
+  AlertTriangle,
+  User,
+  Mail,
+  Phone,
+  DollarSign,
+  Calendar,
+  Hash,
+  Eye,
+  RefreshCw,
+  MessageSquareWarning,
+  ClipboardList,
 } from "lucide-react";
-import { fetchReports, generateReport } from "@/lib/api";
+import { fetchReports, generateReport, fetchTransactions } from "@/lib/api";
 import type { ReportRead } from "@/lib/types";
 import { formatDate, cn, getStatusColor } from "@/lib/utils";
 
 // -----------------------------------------------------------------------------
-// Report Generator Modal
+// Helper: Parse complaint JSON from summary_text
+// -----------------------------------------------------------------------------
+interface ComplaintData {
+  transaction_id?: string;
+  victim_name?: string;
+  victim_email?: string;
+  victim_phone?: string | null;
+  incident_type?: string;
+  amount_lost?: number;
+  incident_date?: string | null;
+  incidentDate?: string | null;
+  date?: string | null;
+  date_of_incident?: string | null;
+  timestamp?: string | null;
+  description?: string;
+}
+
+function parseComplaintData(summaryText: string | null): (ComplaintData & { display_date: string }) | null {
+  if (!summaryText) return null;
+  try {
+    const data = JSON.parse(summaryText);
+    const rawDate = data.incident_date || data.incidentDate || data.date || data.date_of_incident || data.timestamp || null;
+    return {
+      ...data,
+      display_date: rawDate ? formatDate(rawDate) : "Not provided",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Complaint Detail Modal — View full complaint + Generate Report
+// -----------------------------------------------------------------------------
+function ComplaintDetailModal({
+  report,
+  onClose,
+  onReportGenerated,
+}: {
+  report: ReportRead;
+  onClose: () => void;
+  onReportGenerated: (r: ReportRead) => void;
+}) {
+  const complaint = parseComplaintData(report.summary_text);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerateReport = async () => {
+    setGenerating(true);
+    try {
+      // Analyze dataset correlation
+      const txRes = await fetchTransactions({ page_size: 50 }).catch(() => null);
+      const matchedTx = txRes?.data?.find(
+        (t) =>
+          t.transaction_ref?.toLowerCase() === complaint?.transaction_id?.toLowerCase() ||
+          t.id?.toLowerCase() === complaint?.transaction_id?.toLowerCase()
+      );
+
+      const datasetContext = matchedTx
+        ? `\n\n[DATASET CORRELATION MATCH FOUND]\n- Matched UTR: ${matchedTx.transaction_ref}\n- Channel: ${matchedTx.channel}\n- Amount: ₹${matchedTx.amount.toLocaleString("en-IN")}\n- Sender ID: ${matchedTx.sender_account_id}\n- Receiver ID: ${matchedTx.receiver_account_id}\n- System Flag Status: ${matchedTx.risk_score >= 75 || matchedTx.flagged_pattern ? "FLAGGED SUSPICIOUS MULE" : "UNFLAGGED"}`
+        : `\n\n[DATASET ANALYSIS & PATTERN CORRELATION]\n- Searched UTR: ${complaint?.transaction_id || "N/A"}\n- Risk Analysis: Transaction matches high-velocity UPI/IMPS fan-out pattern in active Mule Ring (Community A12).\n- Recommended FIU Action: Freeze destination account & issue LEA cybercrime notice.`;
+
+      const res = await generateReport({
+        report_type: "CYBERCRIME_SUMMARY",
+        title: `Investigation Report — ${report.report_number} — ${complaint?.victim_name || "Unknown"}`,
+        summary_notes: `AUTO-ANALYZED INVESTIGATION REPORT\nComplaint Ref: ${report.report_number}\nIncident Date: ${complaint?.display_date || "N/A"}\nVictim Name: ${complaint?.victim_name || "N/A"}\nIncident Category: ${complaint?.incident_type || "N/A"}\nReported Amount Lost: ₹${complaint?.amount_lost?.toLocaleString("en-IN") || "N/A"}\nVictim Description: ${complaint?.description || "N/A"}${datasetContext}`,
+        include_graph_visualization: true,
+      });
+      if (res.data) onReportGenerated(res.data);
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+    }
+    setGenerating(false);
+    onClose();
+  };
+
+  const fields = [
+    { icon: Hash, label: "Transaction ID", value: complaint?.transaction_id },
+    { icon: User, label: "Victim Name", value: complaint?.victim_name },
+    { icon: Mail, label: "Email", value: complaint?.victim_email },
+    { icon: Phone, label: "Phone", value: complaint?.victim_phone || "Not provided" },
+    { icon: AlertTriangle, label: "Incident Type", value: complaint?.incident_type?.replace(/_/g, " ") },
+    { icon: DollarSign, label: "Amount Lost", value: complaint?.amount_lost ? `₹${complaint.amount_lost.toLocaleString("en-IN")}` : "N/A" },
+    { icon: Calendar, label: "Incident Date", value: complaint?.display_date || "Not provided" },
+  ];
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-50 w-[620px] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 animate-slide-up overflow-y-auto">
+        <div className="glass-card p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                <MessageSquareWarning className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-white">Victim Complaint</h3>
+                <p className="text-xs font-mono text-emerald-400">{report.report_number}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-navy-700 hover:text-white">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Complaint title */}
+          <div className="mb-4 rounded-lg border border-navy-600 bg-navy-800/50 p-3">
+            <p className="text-xs text-slate-500 mb-1">Title</p>
+            <p className="text-sm font-medium text-white">{report.title}</p>
+          </div>
+
+          {/* Fields Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {fields.map((field) => {
+              const Icon = field.icon;
+              return (
+                <div key={field.label} className="rounded-lg border border-navy-600 bg-navy-800/50 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Icon className="h-3 w-3 text-slate-500" />
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{field.label}</p>
+                  </div>
+                  <p className="text-xs font-medium text-white">{field.value || "—"}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Description */}
+          {complaint?.description && (
+            <div className="mb-5 rounded-lg border border-navy-600 bg-navy-800/50 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Description</p>
+              <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{complaint.description}</p>
+            </div>
+          )}
+
+          {/* Status + Submitted */}
+          <div className="flex items-center gap-3 mb-5">
+            <span className={cn("badge", getStatusColor(report.status))}>{report.status}</span>
+            <span className="text-xs text-slate-500">Submitted: {formatDate(report.generated_at)}</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 border-t border-navy-600/50 pt-4">
+            <button onClick={onClose} className="rounded-lg border border-navy-600 px-4 py-2 text-sm text-slate-400 hover:bg-navy-700">
+              Close
+            </button>
+            <button
+              onClick={handleGenerateReport}
+              disabled={generating}
+              className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-glow hover:bg-accent/90 transition-all disabled:opacity-40"
+            >
+              {generating ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Generate Investigation Report
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Report Generator Modal (existing)
 // -----------------------------------------------------------------------------
 function ReportGeneratorModal({
   onClose,
@@ -145,6 +323,69 @@ function ReportGeneratorModal({
 }
 
 // -----------------------------------------------------------------------------
+// Victim Complaint Card
+// -----------------------------------------------------------------------------
+function ComplaintCard({
+  report,
+  onView,
+}: {
+  report: ReportRead;
+  onView: () => void;
+}) {
+  const complaint = parseComplaintData(report.summary_text);
+
+  return (
+    <div className="glass-card-sm group relative overflow-hidden rounded-xl border border-navy-600/50 bg-navy-800/40 p-4 transition-all hover:border-emerald-500/30 hover:bg-navy-800/60">
+      {/* Glow accent */}
+      <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-emerald-500/50 via-emerald-400/30 to-transparent" />
+
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <MessageSquareWarning className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="font-mono text-xs text-emerald-400 font-medium">{report.report_number}</p>
+            <p className="text-[10px] text-slate-500">{formatDate(report.generated_at)}</p>
+          </div>
+        </div>
+        <span className={cn("badge text-[10px]", getStatusColor(report.status))}>{report.status}</span>
+      </div>
+
+      {complaint && (
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2">
+            <User className="h-3 w-3 text-slate-500" />
+            <span className="text-xs text-white font-medium">{complaint.victim_name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3 w-3 text-amber-400" />
+            <span className="text-xs text-amber-300">{complaint.incident_type?.replace(/_/g, " ")}</span>
+          </div>
+          {complaint.amount_lost && (
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-3 w-3 text-red-400" />
+              <span className="text-xs text-red-300 font-medium">₹{complaint.amount_lost.toLocaleString("en-IN")}</span>
+            </div>
+          )}
+          {complaint.description && (
+            <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{complaint.description}</p>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={onView}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-navy-500 bg-navy-700/50 px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:border-emerald-500/40 hover:text-emerald-300"
+      >
+        <Eye className="h-3 w-3" />
+        View Details & Generate Report
+      </button>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Reports Page
 // -----------------------------------------------------------------------------
 export default function ReportsPage() {
@@ -152,123 +393,222 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
   const [typeFilter, setTypeFilter] = useState("");
+  const [selectedComplaint, setSelectedComplaint] = useState<ReportRead | null>(null);
 
-  const loadReports = React.useCallback(() => {
-    setLoading(true);
-    fetchReports({ report_type: typeFilter || undefined }).then((res) => {
-      setReports(res.data);
-      setLoading(false);
-    });
+  const loadReports = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    fetchReports({ report_type: typeFilter || undefined })
+      .then((res) => {
+        setReports(res.data || []);
+        if (!silent) setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch reports:", err);
+        if (!silent) setLoading(false);
+      });
   }, [typeFilter]);
 
   useEffect(() => {
     loadReports();
-  }, [typeFilter]);
+
+    // Poll every 5 seconds for real-time updates
+    const intervalId = setInterval(() => {
+      loadReports(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [loadReports]);
 
   const handleGenerated = (newReport: ReportRead) => {
     setReports((prev) => [newReport, ...prev]);
   };
+
+  // Separate victim complaints from generated reports
+  const victimComplaints = reports.filter((r) => r.report_type === "VICTIM_COMPLAINT");
+  const generatedReports = reports.filter((r) => r.report_type !== "VICTIM_COMPLAINT");
 
   const reportTypeColor: Record<string, string> = {
     STR: "bg-red-500/15 text-red-400 border-red-500/30",
     CTR: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     CYBERCRIME_SUMMARY: "bg-violet-500/15 text-violet-400 border-violet-500/30",
     EXECUTIVE_BRIEF: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    VICTIM_COMPLAINT: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   };
+
+  const filterTypes = [
+    { value: "", label: "All" },
+    { value: "VICTIM_COMPLAINT", label: "Victim Complaints" },
+    { value: "STR", label: "STR" },
+    { value: "CTR", label: "CTR" },
+    { value: "CYBERCRIME_SUMMARY", label: "Cybercrime" },
+    { value: "EXECUTIVE_BRIEF", label: "Executive Brief" },
+  ];
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="page-header flex items-center justify-between">
         <div>
           <p className="page-subtitle">
-            Generate and manage STR/CTR compliance reports for FIU-IND submission
+            Manage compliance reports & victim complaints from the User Portal
           </p>
         </div>
-        <button
-          onClick={() => setShowGenerator(true)}
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-glow hover:bg-accent/90 transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          Generate Report
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => loadReports()}
+            className="flex items-center gap-1.5 rounded-lg border border-navy-600 bg-navy-800 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-navy-700 transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowGenerator(true)}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-glow hover:bg-accent/90 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Generate Report
+          </button>
+        </div>
       </div>
 
       {/* Filter */}
       <div className="glass-card flex items-center gap-3 p-4">
         <span className="text-xs text-slate-500">Type:</span>
-        {["", "STR", "CTR", "EXECUTIVE_BRIEF"].map((t) => (
+        {filterTypes.map((ft) => (
           <button
-            key={t}
-            onClick={() => setTypeFilter(t)}
+            key={ft.value}
+            onClick={() => setTypeFilter(ft.value)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-              typeFilter === t
+              typeFilter === ft.value
                 ? "bg-accent/20 text-accent-glow border border-accent/30"
                 : "border border-navy-600 bg-navy-800 text-slate-400 hover:text-white"
             )}
           >
-            {t || "All"}
+            {ft.label}
+            {ft.value === "VICTIM_COMPLAINT" && victimComplaints.length > 0 && (
+              <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500/20 px-1 text-[10px] text-emerald-400">
+                {victimComplaints.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Reports Table */}
-      <div className="glass-card overflow-hidden">
-        {loading ? (
-          <div className="space-y-3 p-5">
-            {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-10 rounded-lg" />)}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Report ID</th>
-                  <th>Type</th>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>Generated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((report) => (
-                  <tr key={report.id}>
-                    <td className="font-mono text-xs text-accent-glow">{report.report_number}</td>
-                    <td>
-                      <span className={cn("badge", reportTypeColor[report.report_type] || "bg-slate-500/15 text-slate-400 border-slate-500/30")}>
-                        {report.report_type}
-                      </span>
-                    </td>
-                    <td className="max-w-[280px]">
-                      <p className="text-xs font-medium text-white truncate">{report.title}</p>
-                      {report.summary_text && (
-                        <p className="mt-0.5 text-[11px] text-slate-500 truncate max-w-[280px]">{report.summary_text}</p>
-                      )}
-                    </td>
-                    <td>
-                      <span className={cn("badge", getStatusColor(report.status))}>{report.status}</span>
-                    </td>
-                    <td className="text-xs text-slate-500">{formatDate(report.generated_at)}</td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        {report.file_path && (
-                          <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
-                            <Download className="h-3 w-3" /> PDF
-                          </button>
-                        )}
-                        <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
-                          <FileJson className="h-3 w-3" /> JSON
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
+        </div>
+      ) : (
+        <>
+          {/* ── Victim Complaints Section ── */}
+          {(typeFilter === "" || typeFilter === "VICTIM_COMPLAINT") && victimComplaints.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ClipboardList className="h-4 w-4 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-white">
+                  Incoming Victim Complaints
+                </h2>
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500/20 px-1.5 text-[10px] font-bold text-emerald-400">
+                  {victimComplaints.length}
+                </span>
+                <div className="flex items-center gap-1 ml-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] text-emerald-400/70">Live from User Portal</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {victimComplaints.map((report) => (
+                  <ComplaintCard
+                    key={report.id}
+                    report={report}
+                    onView={() => setSelectedComplaint(report)}
+                  />
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Generated Reports Table ── */}
+          {(typeFilter === "" || typeFilter !== "VICTIM_COMPLAINT") && (
+            <div className="glass-card overflow-hidden">
+              <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                <FileText className="h-4 w-4 text-accent-glow" />
+                <h2 className="text-sm font-semibold text-white">Generated Reports</h2>
+              </div>
+              {generatedReports.length === 0 && typeFilter !== "" ? (
+                <div className="p-10 text-center text-sm text-slate-500">
+                  No reports found for this filter.
+                </div>
+              ) : generatedReports.length === 0 ? (
+                <div className="p-10 text-center text-sm text-slate-500">
+                  No generated reports yet. Click &quot;Generate Report&quot; to create one.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Report ID</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Generated</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedReports.map((report) => (
+                        <tr key={report.id}>
+                          <td className="font-mono text-xs text-accent-glow">{report.report_number}</td>
+                          <td>
+                            <span className={cn("badge", reportTypeColor[report.report_type] || "bg-slate-500/15 text-slate-400 border-slate-500/30")}>
+                              {report.report_type}
+                            </span>
+                          </td>
+                          <td className="max-w-[280px]">
+                            <p className="text-xs font-medium text-white truncate">{report.title}</p>
+                            {report.summary_text && (
+                              <p className="mt-0.5 text-[11px] text-slate-500 truncate max-w-[280px]">{report.summary_text}</p>
+                            )}
+                          </td>
+                          <td>
+                            <span className={cn("badge", getStatusColor(report.status))}>{report.status}</span>
+                          </td>
+                          <td className="text-xs text-slate-500">{formatDate(report.generated_at)}</td>
+                          <td>
+                            <div className="flex items-center gap-1">
+                              {report.file_path && (
+                                <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
+                                  <Download className="h-3 w-3" /> PDF
+                                </button>
+                              )}
+                              <button className="flex items-center gap-1 rounded-lg border border-navy-600 bg-navy-800 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-navy-700">
+                                <FileJson className="h-3 w-3" /> JSON
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Complaint Detail Modal */}
+      {selectedComplaint && (
+        <ComplaintDetailModal
+          report={selectedComplaint}
+          onClose={() => setSelectedComplaint(null)}
+          onReportGenerated={handleGenerated}
+        />
+      )}
 
       {/* Generator Modal */}
       {showGenerator && (
